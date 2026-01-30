@@ -1,0 +1,16 @@
+{
+  "name": "img-analyze",
+  "version": "1.0.0",
+  "description": "图片信息提取工具 - 纯前端方案",
+  "type": "module",
+  "scripts": {
+    "dev": "bun server.js",
+    "start": "bun server.js"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "bun-types": "^1.0.0"
+  }
+}

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>图片信息提取</title>
+    <link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="header-top">
+                <h1>📷 信息提取</h1>
+                <div class="header-actions">
+                    <button class="btn-icon" id="downloadBtn" title="下载 Excel">📥</button>
+                    <button class="btn-icon" id="settingsBtn" title="设置">⚙️</button>
+                </div>
+            </div>
+            <p class="subtitle">拍摄或上传图片，提取身高体重信息</p>
+        </header>
+
+        <!-- 记录统计 -->
+        <div class="stats-bar" id="statsBar">
+            <span id="totalCount">0</span> 条记录
+        </div>
+
+        <!-- 上传区域 -->
+        <section class="upload-section" id="uploadSection">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📸</div>
+                <p class="upload-text">点击拍照或选择图片</p>
+                <p class="upload-hint">支持 JPG、PNG 格式</p>
+            </div>
+            <input type="file" 
+                   id="fileInput" 
+                   accept="image/*" 
+                   capture="environment"
+                   hidden>
+        </section>
+
+        <!-- 图片预览 -->
+        <section class="preview-section" id="previewSection" hidden>
+            <div class="preview-container">
+                <img id="imagePreview" alt="预览图片">
+                <div class="preview-actions">
+                    <button class="btn btn-outline" id="changeImage">更换图片</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 加载状态 -->
+        <section class="loading-section" id="loadingSection" hidden>
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>正在分析图片...</p>
+                <p class="loading-hint">请稍候</p>
+            </div>
+        </section>
+
+        <!-- 表单区域 -->
+        <section class="form-section" id="formSection" hidden>
+            <h2 class="section-title">提取的信息</h2>
+            <form id="dataForm">
+                <div class="form-group">
+                    <label for="field_name">姓名</label>
+                    <input type="text" id="field_name" name="name" placeholder="选填">
+                </div>
+                <div class="form-group">
+                    <label for="field_height">身高 (cm)</label>
+                    <input type="number" id="field_height" name="height" placeholder="选填">
+                </div>
+                <div class="form-group">
+                    <label for="field_weight">体重 (kg)</label>
+                    <input type="number" id="field_weight" name="weight" placeholder="选填" step="0.1">
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-primary" id="submitBtn">
+                        保存
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 成功提示 -->
+        <section class="success-section" id="successSection" hidden>
+            <div class="success-card">
+                <div class="success-icon">✅</div>
+                <h2>保存成功！</h2>
+                <p id="successMsg">数据已保存</p>
+                <button class="btn btn-outline" id="continueBtn">继续添加</button>
+            </div>
+        </section>
+
+        <!-- 今日记录 -->
+        <section class="records-section" id="recordsSection">
+            <h3 class="section-title">今日记录</h3>
+            <div class="records-list" id="recordsList">
+                <p class="empty-tip">暂无记录</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div class="modal" id="settingsModal" hidden>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>设置</h3>
+                <button class="modal-close" id="closeSettings">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>GLM API Key</label>
+                    <input type="password" id="apiKeyInput" placeholder="输入智谱 API Key">
+                    <p class="hint">API Key 保存在本地，不会上传</p>
+                </div>
+                <button class="btn btn-primary" id="saveApiKey">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script type="module" src="src/app.js"></script>
+</body>
+</html>
