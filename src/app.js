@@ -268,43 +268,34 @@ class ImageAnalyzerApp {
         this.saveApiKeyBtn.addEventListener('click', () => this.saveApiKey());
         this.downloadBtn.addEventListener('click', () => this.showDateSelectModal());
         
-        // BMI 自动计算
         this.fieldHeight.addEventListener('input', () => this.calculateBMI());
         this.fieldWeight.addEventListener('input', () => this.calculateBMI());
         
-        // GERDQ 自动计算（复选框模式）- 只设置一次事件监听器
         for (let q = 1; q <= 6; q++) {
             for (let d = 0; d <= 3; d++) {
                 const checkbox = document.querySelector(`input[name="gerdq_${q}_${d}"]`);
                 if (checkbox) {
-                    checkbox.addEventListener('change', (e) => {
-                        // 同行互斥：选中一个时取消其他
-                        if (e.target.checked) {
-                            for (let od = 0; od <= 3; od++) {
-                                const otherCheckbox = document.querySelector(`input[name="gerdq_${q}_${od}"]`);
-                                if (otherCheckbox && otherCheckbox !== e.target) {
-                                    otherCheckbox.checked = false;
-                                }
-                            }
-                        }
-                        this.calculateGerdq();
-                    });
+                    checkbox.addEventListener('change', () => this.calculateGerdq());
                 }
             }
         }
         
-        // 氧合评估自动计算
         this.fieldOxygenFlow.addEventListener('input', () => this.calculateOxygenConcentration());
         this.fieldPao2.addEventListener('input', () => this.calculateOxygenIndex());
         
-        // 环境接触史互斥逻辑（选择"无"时禁用其他选项）
+        // 环境接触史互斥逻辑（选择"无"时取消其他，选择其他时取消"无"）
         this.checkboxEnvironments.forEach(cb => {
-            cb.addEventListener('change', () => this.handleMutexCheckboxes(this.checkboxEnvironments, '无'));
+            cb.addEventListener('change', () => this.handleMutexCheckboxesWithClear(this.checkboxEnvironments, '无'));
         });
         
-        // 饮食习惯互斥逻辑（选择"无"时禁用其他选项）
+        // 饮食习惯互斥逻辑
         this.checkboxDiets.forEach(cb => {
-            cb.addEventListener('change', () => this.handleMutexCheckboxes(this.checkboxDiets, '无'));
+            cb.addEventListener('change', () => this.handleMutexCheckboxesWithClear(this.checkboxDiets, '无'));
+        });
+        
+        // 病原体检测互斥逻辑
+        this.checkboxPathogens.forEach(cb => {
+            cb.addEventListener('change', () => this.handleMutexCheckboxesWithClear(this.checkboxPathogens, '无'));
         });
         
         // 日期选择弹窗事件
@@ -633,12 +624,10 @@ class ImageAnalyzerApp {
         // 环境接触史（多选）
         this.checkboxEnvironments.forEach(cb => {
             cb.checked = false;
-            cb.disabled = false;
         });
         // 饮食习惯（多选）
         this.checkboxDiets.forEach(cb => {
             cb.checked = false;
-            cb.disabled = false;
         });
         // 幽门螺旋杆菌
         this.fieldHp.value = '';
@@ -914,6 +903,22 @@ class ImageAnalyzerApp {
             otherCbs.forEach(cb => {
                 cb.disabled = false;
             });
+        }
+    }
+    
+    // 互斥逻辑：选择"无"时取消其他，选择其他时取消"无"
+    handleMutexCheckboxesWithClear(checkboxes, exclusiveValue) {
+        const exclusiveCb = Array.from(checkboxes).find(cb => cb.value === exclusiveValue);
+        const otherCbs = Array.from(checkboxes).filter(cb => cb.value !== exclusiveValue);
+        
+        if (exclusiveCb.checked) {
+            // 选中"无"时，取消其他所有选项
+            otherCbs.forEach(cb => {
+                cb.checked = false;
+            });
+        } else {
+            // 选中其他选项时，取消"无"
+            exclusiveCb.checked = false;
         }
     }
     

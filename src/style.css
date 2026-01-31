@@ -287,6 +287,12 @@ section {
     width: 1.125rem;
     height: 1.125rem;
     accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"]:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
 }
 
 .checkbox-label input[type="checkbox"]:disabled {
