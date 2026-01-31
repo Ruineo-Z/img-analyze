@@ -219,6 +219,7 @@ class ImageAnalyzerApp {
         
         // 第三部分：mMRC字段
         this.fieldMmrc = document.getElementById('field_mmrc');
+        this.fieldGerdqTotal = document.getElementById('field_gerdq_total');
         
         // 第四部分：检查报告字段
         this.fieldCtReport = document.getElementById('field_ct_report');
