@@ -272,13 +272,21 @@ class ImageAnalyzerApp {
         this.fieldHeight.addEventListener('input', () => this.calculateBMI());
         this.fieldWeight.addEventListener('input', () => this.calculateBMI());
         
-        // GERDQ 自动计算（复选框模式）
+        // GERDQ 自动计算（复选框模式）- 只设置一次事件监听器
         for (let q = 1; q <= 6; q++) {
             for (let d = 0; d <= 3; d++) {
                 const checkbox = document.querySelector(`input[name="gerdq_${q}_${d}"]`);
                 if (checkbox) {
-                    checkbox.addEventListener('change', () => {
-                        this.handleGerdqCheckboxChange(q);
+                    checkbox.addEventListener('change', (e) => {
+                        // 同行互斥：选中一个时取消其他
+                        if (e.target.checked) {
+                            for (let od = 0; od <= 3; od++) {
+                                const otherCheckbox = document.querySelector(`input[name="gerdq_${q}_${od}"]`);
+                                if (otherCheckbox && otherCheckbox !== e.target) {
+                                    otherCheckbox.checked = false;
+                                }
+                            }
+                        }
                         this.calculateGerdq();
                     });
                 }
