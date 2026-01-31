@@ -318,18 +318,16 @@ class ImageAnalyzerApp {
     }
     
     showDateSelectModal() {
-        this.loadTodayRecords().then(() => {
-            this.showDateSelectDialog();
-        });
+        this.showDateSelectDialog();
     }
     
     showDateSelectDialog() {
         this.getAllRecords().then(allRecords => {
-            if (allRecords.length === 0) {
+            if (!allRecords || allRecords.length === 0) {
                 this.showToast('暂无数据', 'error');
                 return;
             }
-            
+
             // 提取所有唯一日期
             const dates = [...new Set(allRecords.map(r => r.date))].sort().reverse();
             
@@ -360,103 +358,33 @@ class ImageAnalyzerApp {
         
         this.hideDateSelectModal();
         
-        const allRecords = await this.getAllRecords();
-        const filteredRecords = allRecords.filter(r => r.date === selectedDate);
+        this.showToast(`正在导出 ${selectedDate} 的数据...`, 'success');
         
-        this.showToast(`正在导出 ${selectedDate} 的 ${filteredRecords.length} 条数据...`, 'success');
-        
-        const data = filteredRecords.map(r => ({
-            '分组': r.group || '',
-            'ID号': r.id || '',
-            '姓名': r.name || '',
-            '性别': r.gender || '',
-            '民族': r.ethnicity || '',
-            '身高(M)': r.height || '',
-            '体重(KG)': r.weight || '',
-            'BMI': r.bmi || '',
-            '职业': r.occupation || '',
-            '婚姻': r.marriage || '',
-            '西医诊断': r.diagnosis_wm || '',
-            '中医诊断': r.diagnosis_tcm || '',
-            '既往病史用药史': r.medical_history || '',
-            '烟酒史': r.smoking_drinking || '',
-            '过敏史': r.allergy || '',
-            '手术史': r.surgery || '',
-            '环境接触史': r.environment || '',
-            '饮食习惯': r.diet || '',
-            '幽门螺旋杆菌': r.hp || '',
-            '病程(年)': r.duration || '',
-            '当前用药': r.medications || '',
+        try {
+            const response = await fetch('/api/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: selectedDate })
+            });
             
-            // GERDQ评分 (6 questions × 4 day ranges = 24 fields)
-            ...(() => {
-                const gerdqData = {};
-                const dayRanges = ['0天', '1天', '2-3天', '4-7天'];
-                const gerdqQuestions = [
-                    '醒来时烧心', '睡眠中醒来', '醒来时反流', '进食后烧心',
-                    '进食后反流', '上腹痛'
-                ];
-                for (let q = 1; q <= 6; q++) {
-                    for (let d = 0; d <= 3; d++) {
-                        const key = `GERDQ_${gerdqQuestions[q-1]}_${dayRanges[d]}`;
-                        gerdqData[key] = r[key] || '';
-                    }
-                }
-                gerdqData['GERDQ_总分'] = r.gerdq_total || '';
-                return gerdqData;
-            })(),
+            const result = await response.json();
             
-            // mMRC评分
-            'mMRC分级': r.mmrc || '',
+            if (!result.success) {
+                throw new Error(result.message || '导出失败');
+            }
             
-            // 第四部分：检查报告
-            'CT报告': r.ct_report || '',
-            '肺纤维化位置': r.fibrosis_location || '',
-            '胃镜报告': r.gastroscopy || '',
-            '活检报告': r.biopsy || '',
-            '肺功能报告': r.lung_function || '',
+            const ws = XLSX.utils.json_to_sheet(result.data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Records');
+            XLSX.writeFile(wb, `医疗信息录入_${selectedDate}.xlsx`);
             
-            // 营养指标
-            '总蛋白(g/L)': r.total_protein || '',
-            '白蛋白(g/L)': r.albumin || '',
-            '前白蛋白(mg/L)': r.prealbumin || '',
-            '红细胞计数(×10¹²/L)': r.rbc || '',
-            '血红蛋白(g/L)': r.hemoglobin || '',
-            
-            // 血气分析
-            '氧分压PaO₂(mmHg)': r.pao2 || '',
-            '二氧化碳分压PaCO₂(mmHg)': r.paco2 || '',
-            '血氧饱和度SaO₂(%)': r.sao2 || '',
-            
-            // 氧合评估
-            '氧流量(L/min)': r.oxygen_flow || '',
-            '吸氧浓度(%)': r.oxygen_concentration || '',
-            '氧合指数': r.oxygen_index || '',
-            
-            // 病原体检测
-            '呼吸道病原体': r.pathogen || '',
-            
-            // 体格检查
-            '体格检查异常结果': r.physical_exam || '',
-            
-            // 第五部分：中医问诊
-            '中医问诊总分': r.tcm_total || '',
-            ...this.getTCMExcelColumns(r),
-            
-            '日期': r.date,
-            '记录时间': r.createdAt
-        }));
-
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Records');
-        
-        const date = new Date().toISOString().split('T')[0];
-        XLSX.writeFile(wb, `医疗信息录入_${date}.xlsx`);
-        
-        this.showToast('下载成功', 'success');
+            this.showToast('下载成功', 'success');
+        } catch (error) {
+            console.error('导出失败:', error);
+            this.showToast('导出失败，请重试', 'error');
+        }
     }
-    
+
     calculateBMI() {
         const height = parseFloat(this.fieldHeight.value);
         const weight = parseFloat(this.fieldWeight.value);
@@ -860,27 +788,27 @@ class ImageAnalyzerApp {
         };
         
         try {
-            await this.addRecord(record);
-            this.formSection.hidden = true;
-            this.successSection.hidden = false;
-            document.getElementById('successMsg').textContent = '已保存: ' + (record.name || record.id || '新记录');
-            this.loadTodayRecords();
-            this.showToast('保存成功', 'success');
+            // 调用后端API保存记录
+            const response = await fetch('/api/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(record)
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                this.formSection.hidden = true;
+                this.successSection.hidden = false;
+                document.getElementById('successMsg').textContent = '已保存: ' + (record.name || record.id || '新记录');
+                this.loadTodayRecords();
+                this.showToast('保存成功', 'success');
+            } else {
+                throw new Error(result.message);
+            }
         } catch (error) {
             console.error('保存失败:', error);
             this.showToast('保存失败，请重试', 'error');
         }
-    }
-    
-    async addRecord(record) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([this.storeName], 'readwrite');
-            const store = transaction.objectStore(this.storeName);
-            const request = store.put(record);  // put会自动更新已存在的记录
-            
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
     }
     
     async loadTodayRecords() {
@@ -894,15 +822,24 @@ class ImageAnalyzerApp {
         this.renderRecords(sortedRecords);
     }
     
-    async getAllRecords() {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([this.storeName], 'readonly');
-            const store = transaction.objectStore(this.storeName);
-            const request = store.getAll();
+    async getAllRecords(dateFilter = null) {
+        try {
+            const url = dateFilter 
+                ? `/api/records?date=${encodeURIComponent(dateFilter)}`
+                : '/api/records';
+            const response = await fetch(url);
+            const result = await response.json();
             
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
+            if (result.success) {
+                return result.records;
+            } else {
+                console.error('获取记录失败:', result.message);
+                return [];
+            }
+        } catch (error) {
+            console.error('获取记录失败:', error);
+            return [];
+        }
     }
     
     renderRecords(records) {
@@ -1028,6 +965,25 @@ class ImageAnalyzerApp {
 5. 【关键】JSON字符串值内部绝对不要使用引号，所有引号必须是JSON结构的一部分
 6. 如果诊断名称本身包含引号，请改用其他描述方式或去除引号
 7. 请仔细识别所有图片，跨图片关联提取信息，确保信息完整准确
+
+【注意：血气分析和肺功能是两种不同的报告】
+- 血气分析报告：包含体温、pH值、氧分压、二氧化碳分压、血糖、乳酸等指标
+- 肺功能报告：包含FVC、FEV1、PEF等呼吸功能指标
+- 请注意区分，不要混淆
+
+【字段提取规则】
+- ct_report: CT报告的完整描述
+- gastroscopy: 胃镜报告的完整描述
+- biopsy: 活检报告的完整描述
+- lung_function: 肺功能报告的完整描述（如FVC、FEV1等），不要包含血气分析内容
+- pao2: 血气分析中的氧分压数值，只填数字，如 "112.1"
+- paco2: 血气分析中的二氧化碳分压数值，只填数字，如 "84.5"
+- sao2: 血气分析中的血氧饱和度数值，只填数字，如 "97.9"
+- total_protein: 总蛋白数值，只填数字
+- albumin: 白蛋白数值，只填数字
+- prealbumin: 前白蛋白数值，只填数字
+- rbc: 红细胞计数数值，只填数字
+- hemoglobin: 血红蛋白数值，只填数字
 
 【输出格式】只输出JSON，不要有任何其他内容：
 {"id": "", "name": "", "gender": "", "ethnicity": "", "occupation": "", "marriage": "", "diagnosis_wm": "", "diagnosis_tcm": "", "medical_history": "", "smoking_drinking": "", "allergy": "", "surgery": "", "medications": "", "ct_report": "", "fibrosis_location": "", "gastroscopy": "", "biopsy": "", "lung_function": "", "total_protein": "", "albumin": "", "prealbumin": "", "rbc": "", "hemoglobin": "", "pao2": "", "paco2": "", "sao2": "", "physical_exam": ""}

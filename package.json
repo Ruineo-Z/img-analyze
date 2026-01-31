@@ -11,6 +11,11 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "bun-types": "^1.0.0"
-  }
+    "bun-types": "^1.0.0",
+    "playwright": "^1.58.1"
+  },
+  "main": "server.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
