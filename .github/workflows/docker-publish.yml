@@ -6,6 +6,20 @@ on:
     tags: [v*]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker image tag'
+        required: false
+        default: 'latest'
+      push:
+        description: 'Push to registry'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 env:
   DOCKER_BUILDKIT: 1
@@ -38,12 +52,13 @@ jobs:
             type=ref,event=branch
             type=raw,value=${{ github.ref_name }},enable=${{ !startsWith(github.ref_name, 'v') }}
             type=raw,value={{ version }},enable=${{ startsWith(github.ref_name, 'v') }}
+            type=raw,value=${{ github.event.inputs.tag || github.ref_name }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          push: ${{ github.event_name != 'pull_request' && github.event.inputs.push != 'false' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
