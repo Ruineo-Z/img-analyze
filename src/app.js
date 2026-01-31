@@ -907,6 +907,206 @@ class ImageAnalyzerApp {
             });
         }
     }
+    
+    async analyzeImage() {
+        this.previewSection.hidden = true;
+        this.loadingSection.hidden = false;
+        this.formSection.hidden = true;
+        this.successSection.hidden = true;
+        
+        try {
+            const data = await this.callGLMAPI();
+            this.fillForm(data);
+            
+            this.loadingSection.hidden = true;
+            this.formSection.hidden = false;
+        } catch (error) {
+            console.error('分析失败:', error);
+            this.showToast(error.message || '分析失败，请重试', 'error');
+            this.loadingSection.hidden = true;
+            this.previewSection.hidden = false;
+        }
+    }
+    
+    async callGLMAPI() {
+        if (!this.apiKey) {
+            this.showSettings();
+            throw new Error('请先配置 API Key');
+        }
+        
+        const base64Data = this.currentImageBase64.split(',')[1];
+        
+        const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'glm-4.5v',
+                messages: [{
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'image_url',
+                            image_url: { url: base64Data }
+                        },
+                        {
+                            type: 'text',
+                            text: `请从这张医疗图片中提取患者信息，按以下JSON格式输出。务必提取完整信息，不要只写"有"或"无"，必须包含具体内容。
+
+【重要规则】
+1. 务必提取完整信息，不要遗漏细节
+2. 如果某字段信息不明确或未提及，填写"未提及"，不要留空
+3. 所有文本字段必须是字符串类型
+4. 严格按照JSON格式输出，不要有额外解释
+
+【输出格式】
+{
+  "id": "患者ID（10位数）",
+  "name": "患者姓名",
+  "gender": "性别（男或女）",
+  "ethnicity": "民族",
+  "occupation": "职业",
+  "marriage": "婚姻状况（已婚/未婚/离异/丧偶）",
+  "diagnosis_wm": "西医诊断（完整诊断名称）",
+  "diagnosis_tcm": "中医诊断（完整诊断名称）",
+  "medical_history": "既往病史（格式：有/无 + 具体病史。如：有，高血压病史5年，服用降压药）",
+  "smoking_drinking": "烟酒史（格式：吸烟史：有/无，支/日，年，是否戒烟；饮酒史：有/无，ml/日，年，是否戒酒）",
+  "allergy": "过敏史（格式：有/无 + 过敏原及反应。如：有，青霉素过敏，出现皮疹）",
+  "surgery": "手术史（格式：有/无 + 手术名称及时间。如：有，2020年阑尾切除术）",
+  "medications": "当前用药（格式：有/无 + 药物名称。如：有，奥美拉唑、莫沙必利）",
+  "ct_report": "CT报告（完整报告内容）",
+  "fibrosis_location": "肺纤维化位置（如有）",
+  "gastroscopy": "胃镜报告（有/无 + 完整报告）",
+  "biopsy": "活检报告（有/无 + 完整报告）",
+  "lung_function": "肺功能报告（完整报告内容）",
+  "total_protein": "总蛋白数值",
+  "albumin": "白蛋白数值",
+  "prealbumin": "前白蛋白数值",
+  "rbc": "红细胞计数",
+  "hemoglobin": "血红蛋白",
+  "pao2": "氧分压PaO2",
+  "paco2": "二氧化碳分压PaCO2",
+  "sao2": "血氧饱和度SaO2",
+  "physical_exam": "体格检查（①一般情况 ②皮肤及浅表淋巴结 ③头颈部 ④胸部 ⑤腹部 ⑥神经系统 ⑦脊柱四肢）"
+}
+
+请仔细识别图片中所有信息，确保完整准确。`
+                        }
+                    ]
+                }],
+                temperature: 0.1,
+                max_tokens: 4096
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error?.message || 'API 调用失败');
+        }
+        
+        const data = await response.json();
+        return this.parseResponse(data.choices[0].message.content);
+    }
+    
+    parseResponse(response) {
+        let jsonStr = response.trim();
+        
+        const jsonMatch = jsonStr.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+            jsonStr = jsonMatch[1];
+        }
+        
+        try {
+            return JSON.parse(jsonStr);
+        } catch (e) {
+            console.warn('JSON 解析失败:', jsonStr);
+            return {};
+        }
+    }
+    
+    fillForm(data) {
+        this.fieldId.value = data.id || '';
+        this.fieldName.value = data.name || '';
+        
+        if (data.gender) {
+            const genderLower = data.gender.toLowerCase();
+            if (genderLower.includes('男')) this.fieldGender.value = '男';
+            else if (genderLower.includes('女')) this.fieldGender.value = '女';
+        }
+        
+        this.fieldEthnicity.value = data.ethnicity || '';
+        this.fieldOccupation.value = data.occupation || '';
+        
+        if (data.marriage) {
+            const marriageLower = data.marriage.toLowerCase();
+            if (marriageLower.includes('已婚')) this.fieldMarriage.value = '已婚';
+            else if (marriageLower.includes('未婚')) this.fieldMarriage.value = '未婚';
+            else if (marriageLower.includes('离异')) this.fieldMarriage.value = '离异';
+            else if (marriageLower.includes('丧偶')) this.fieldMarriage.value = '丧偶';
+        }
+        
+        this.fieldDiagnosisWm.value = data.diagnosis_wm || data.diagnosisWm || '';
+        this.fieldDiagnosisTcm.value = data.diagnosis_tcm || data.diagnosisTcm || '';
+        this.fieldMedicalHistory.value = data.medical_history || '';
+        this.fieldSmokingDrinking.value = data.smoking_drinking || '';
+        this.fieldAllergy.value = data.allergy || '';
+        this.fieldSurgery.value = data.surgery || '';
+        
+        // 环境接触史（多选）- 从完整文本中提取
+        if (data.environment) {
+            this.checkboxEnvironments.forEach(cb => {
+                const envLower = data.environment.toLowerCase();
+                cb.checked = envLower.includes(cb.value.toLowerCase());
+            });
+        }
+        
+        // 饮食习惯（多选）- 从完整文本中提取
+        if (data.diet) {
+            this.checkboxDiets.forEach(cb => {
+                const dietLower = data.diet.toLowerCase();
+                cb.checked = dietLower.includes(cb.value.toLowerCase());
+            });
+        }
+        
+        // 幽门螺旋杆菌
+        if (data.hp) {
+            const hpLower = data.hp.toLowerCase();
+            if (hpLower.includes('阳性')) this.fieldHp.value = '阳性';
+            else if (hpLower.includes('阴性')) this.fieldHp.value = '阴性';
+        }
+        this.fieldMedications.value = data.medications || '';
+        
+        // 检查报告
+        this.fieldCtReport.value = data.ct_report || data.ctReport || '';
+        this.fieldFibrosisLocation.value = data.fibrosis_location || data.fibrosisLocation || '';
+        this.fieldGastroscopy.value = data.gastroscopy || '';
+        this.fieldBiopsy.value = data.biopsy || '';
+        this.fieldLungFunction.value = data.lung_function || data.lungFunction || '';
+        
+        // 营养指标
+        this.fieldTotalProtein.value = data.total_protein || data.totalProtein || '';
+        this.fieldAlbumin.value = data.albumin || '';
+        this.fieldPrealbumin.value = data.prealbumin || '';
+        this.fieldRbc.value = data.rbc || '';
+        this.fieldHemoglobin.value = data.hemoglobin || '';
+        
+        // 血气分析
+        this.fieldPao2.value = data.pao2 || data.pao_2 || '';
+        this.fieldPaco2.value = data.paco2 || data.paco_2 || '';
+        this.fieldSao2.value = data.sao2 || data.sao_2 || '';
+        
+        // 氧合评估
+        this.calculateOxygenConcentration();
+        this.calculateOxygenIndex();
+        
+        // 体格检查
+        this.fieldPhysicalExam.value = data.physical_exam || data.physicalExam || '';
+        
+        // 中医问诊
+        this.fieldTcmTotal.value = data.tcm_total || data.tcmTotal || '0';
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
