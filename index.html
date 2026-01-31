@@ -38,16 +38,22 @@
                    id="fileInput" 
                    accept="image/*" 
                    capture="environment"
+                   multiple
                    hidden>
         </section>
 
         <!-- 图片预览 -->
         <section class="preview-section" id="previewSection" hidden>
-            <div class="preview-container">
-                <img id="imagePreview" alt="预览图片">
-                <div class="preview-actions">
-                    <button class="btn btn-outline" id="changeImage">更换图片</button>
-                </div>
+            <div class="preview-header">
+                <h3>已选择 <span id="imageCount">0</span>/10 张图片</h3>
+                <button class="btn btn-outline" id="clearAllImages">清空</button>
+            </div>
+            <div class="preview-grid" id="previewGrid">
+                <!-- 图片预览将通过JS动态添加 -->
+            </div>
+            <div class="preview-actions">
+                <button class="btn btn-outline" id="addMoreImages">＋ 添加更多</button>
+                <button class="btn btn-primary" id="analyzeImagesBtn">开始分析</button>
             </div>
         </section>
 

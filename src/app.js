@@ -6,6 +6,8 @@ class ImageAnalyzerApp {
         this.storeName = 'records';
         this.apiKey = '';
         this.currentImageBase64 = '';
+        this.uploadedImages = [];  // 存储所有已上传图片的base64数据
+        this.MAX_IMAGES = 10;  // 最大支持10张图片
         
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.init());
@@ -165,8 +167,11 @@ class ImageAnalyzerApp {
         this.uploadArea = document.getElementById('uploadArea');
         this.fileInput = document.getElementById('fileInput');
         this.previewSection = document.getElementById('previewSection');
-        this.imagePreview = document.getElementById('imagePreview');
-        this.changeImageBtn = document.getElementById('changeImage');
+        this.previewGrid = document.getElementById('previewGrid');
+        this.imageCount = document.getElementById('imageCount');
+        this.clearAllImagesBtn = document.getElementById('clearAllImages');
+        this.addMoreImagesBtn = document.getElementById('addMoreImages');
+        this.analyzeImagesBtn = document.getElementById('analyzeImagesBtn');
         this.loadingSection = document.getElementById('loadingSection');
         this.formSection = document.getElementById('formSection');
         this.submitBtn = document.getElementById('submitBtn');
@@ -260,7 +265,15 @@ class ImageAnalyzerApp {
     bindEvents() {
         this.uploadArea.addEventListener('click', () => this.fileInput.click());
         this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-        this.changeImageBtn.addEventListener('click', () => this.resetToUpload());
+        this.clearAllImagesBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.clearAllImages();
+        });
+        this.addMoreImagesBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.fileInput.click();
+        });
+        this.analyzeImagesBtn.addEventListener('click', () => this.analyzeImages());
         this.submitBtn.addEventListener('click', () => this.saveRecord());
         this.continueBtn.addEventListener('click', () => this.resetToUpload());
         this.settingsBtn.addEventListener('click', () => this.showSettings());
@@ -568,22 +581,69 @@ class ImageAnalyzerApp {
     }
     
     handleFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+        const files = Array.from(event.target.files);
+        if (!files.length) return;
         
-        if (!file.type.startsWith('image/')) {
+        // 验证文件类型
+        const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
+        if (invalidFiles.length > 0) {
             this.showToast('请选择图片文件', 'error');
             return;
         }
         
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this.currentImageBase64 = e.target.result;
-            this.imagePreview.src = this.currentImageBase64;
+        // 检查是否超过最大数量
+        if (this.uploadedImages.length + files.length > this.MAX_IMAGES) {
+            this.showToast(`最多只能上传${this.MAX_IMAGES}张图片`, 'error');
+            return;
+        }
+        
+        // 转换所有文件为base64
+        const readers = files.map(file => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve({ name: file.name, base64: e.target.result });
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        });
+        
+        Promise.all(readers).then(results => {
+            this.uploadedImages.push(...results);
+            this.updatePreviewUI();
             this.showPreview();
-            this.analyzeImage();
-        };
-        reader.readAsDataURL(file);
+        }).catch(error => {
+            this.showToast('图片读取失败', 'error');
+        });
+    }
+    
+    updatePreviewUI() {
+        this.previewGrid.innerHTML = '';
+        this.imageCount.textContent = this.uploadedImages.length;
+        
+        this.uploadedImages.forEach((img, index) => {
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+            item.innerHTML = `
+                <img src="${img.base64}" alt="${img.name}">
+                <button class="remove-btn" data-index="${index}">×</button>
+            `;
+            item.querySelector('.remove-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.removeImage(index);
+            });
+            this.previewGrid.appendChild(item);
+        });
+    }
+    
+    removeImage(index) {
+        this.uploadedImages.splice(index, 1);
+        this.updatePreviewUI();
+    }
+    
+    clearAllImages() {
+        this.uploadedImages = [];
+        this.updatePreviewUI();
+        this.showToast('已清空所有图片', 'success');
     }
     
     showPreview() {
@@ -600,11 +660,12 @@ class ImageAnalyzerApp {
         this.formSection.hidden = true;
         this.successSection.hidden = true;
         this.fileInput.value = '';
-        this.currentImageBase64 = '';
+        this.uploadedImages = [];
         this.clearForm();
     }
     
     clearForm() {
+        this.uploadedImages = [];  // 清空已上传图片
         this.fieldGroup.value = '';
         this.fieldId.value = '';
         this.fieldName.value = '';
@@ -661,7 +722,9 @@ class ImageAnalyzerApp {
         this.fieldHemoglobin.value = '';
         
         // 血气分析字段
-        this.fieldBloodGas.value = '';
+        if (this.fieldBloodGas) {
+            this.fieldBloodGas.value = '';
+        }
         
         // 氧合评估字段
         this.fieldOxygenFlow.value = '';
@@ -813,7 +876,7 @@ class ImageAnalyzerApp {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([this.storeName], 'readwrite');
             const store = transaction.objectStore(this.storeName);
-            const request = store.add(record);
+            const request = store.put(record);  // put会自动更新已存在的记录
             
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
@@ -923,6 +986,70 @@ class ImageAnalyzerApp {
     }
     
     async analyzeImage() {
+        await this.analyzeImages();
+    }
+    
+    async callGLMAPI() {
+        if (!this.apiKey) {
+            this.showSettings();
+            throw new Error('请先配置 API Key');
+        }
+        
+        if (this.uploadedImages.length === 0) {
+            throw new Error('请先上传图片');
+        }
+        
+        const imageContents = this.uploadedImages.map(img => ({
+            type: 'image_url',
+            image_url: { url: img.base64.split(',')[1] }
+        }));
+        
+        const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'glm-4.6v',
+                messages: [{
+                    role: 'user',
+                    content: [
+                        ...imageContents,
+                        {
+                            type: 'text',
+                            text: `请从以上${this.uploadedImages.length}张医疗图片中提取患者信息，按以下JSON格式输出。务必确保输出的是有效的JSON格式。
+
+【重要规则】
+1. 务必提取完整信息，不要遗漏细节
+2. 如果某字段信息不明确或未提及，填写"未提及"，不要留空
+3. 所有文本字段必须是字符串类型
+4. 严格按照JSON格式输出，不要有额外解释
+5. 【关键】JSON字符串值内部绝对不要使用引号，所有引号必须是JSON结构的一部分
+6. 如果诊断名称本身包含引号，请改用其他描述方式或去除引号
+7. 请仔细识别所有图片，跨图片关联提取信息，确保信息完整准确
+
+【输出格式】只输出JSON，不要有任何其他内容：
+{"id": "", "name": "", "gender": "", "ethnicity": "", "occupation": "", "marriage": "", "diagnosis_wm": "", "diagnosis_tcm": "", "medical_history": "", "smoking_drinking": "", "allergy": "", "surgery": "", "medications": "", "ct_report": "", "fibrosis_location": "", "gastroscopy": "", "biopsy": "", "lung_function": "", "total_protein": "", "albumin": "", "prealbumin": "", "rbc": "", "hemoglobin": "", "pao2": "", "paco2": "", "sao2": "", "physical_exam": ""}
+
+请仔细识别所有图片，确保完整准确。`
+                        }
+                    ]
+                }],
+                temperature: 0.1
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error?.message || 'API 调用失败');
+        }
+        
+        const data = await response.json();
+        return this.parseResponse(data.choices[0].message.content);
+    }
+    
+    async analyzeImages() {
         this.previewSection.hidden = true;
         this.loadingSection.hidden = false;
         this.formSection.hidden = true;
@@ -942,102 +1069,122 @@ class ImageAnalyzerApp {
         }
     }
     
-    async callGLMAPI() {
-        if (!this.apiKey) {
-            this.showSettings();
-            throw new Error('请先配置 API Key');
-        }
-        
-        const base64Data = this.currentImageBase64.split(',')[1];
-        
-        const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'glm-4.5v',
-                messages: [{
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'image_url',
-                            image_url: { url: base64Data }
-                        },
-                        {
-                            type: 'text',
-                            text: `请从这张医疗图片中提取患者信息，按以下JSON格式输出。务必提取完整信息，不要只写"有"或"无"，必须包含具体内容。
-
-【重要规则】
-1. 务必提取完整信息，不要遗漏细节
-2. 如果某字段信息不明确或未提及，填写"未提及"，不要留空
-3. 所有文本字段必须是字符串类型
-4. 严格按照JSON格式输出，不要有额外解释
-
-【输出格式】
-{
-  "id": "患者ID（10位数）",
-  "name": "患者姓名",
-  "gender": "性别（男或女）",
-  "ethnicity": "民族",
-  "occupation": "职业",
-  "marriage": "婚姻状况（已婚/未婚/离异/丧偶）",
-  "diagnosis_wm": "西医诊断（完整诊断名称）",
-  "diagnosis_tcm": "中医诊断（完整诊断名称）",
-  "medical_history": "既往病史（格式：有/无 + 具体病史。如：有，高血压病史5年，服用降压药）",
-  "smoking_drinking": "烟酒史（格式：吸烟史：有/无，支/日，年，是否戒烟；饮酒史：有/无，ml/日，年，是否戒酒）",
-  "allergy": "过敏史（格式：有/无 + 过敏原及反应。如：有，青霉素过敏，出现皮疹）",
-  "surgery": "手术史（格式：有/无 + 手术名称及时间。如：有，2020年阑尾切除术）",
-  "medications": "当前用药（格式：有/无 + 药物名称。如：有，奥美拉唑、莫沙必利）",
-  "ct_report": "CT报告（完整报告内容）",
-  "fibrosis_location": "肺纤维化位置（如有）",
-  "gastroscopy": "胃镜报告（有/无 + 完整报告）",
-  "biopsy": "活检报告（有/无 + 完整报告）",
-  "lung_function": "肺功能报告（完整报告内容）",
-  "total_protein": "总蛋白数值",
-  "albumin": "白蛋白数值",
-  "prealbumin": "前白蛋白数值",
-  "rbc": "红细胞计数",
-  "hemoglobin": "血红蛋白",
-  "pao2": "氧分压PaO2",
-  "paco2": "二氧化碳分压PaCO2",
-  "sao2": "血氧饱和度SaO2",
-  "physical_exam": "体格检查（①一般情况 ②皮肤及浅表淋巴结 ③头颈部 ④胸部 ⑤腹部 ⑥神经系统 ⑦脊柱四肢）"
-}
-
-请仔细识别图片中所有信息，确保完整准确。`
-                        }
-                    ]
-                }],
-                temperature: 0.1,
-                max_tokens: 4096
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.error?.message || 'API 调用失败');
-        }
-        
-        const data = await response.json();
-        return this.parseResponse(data.choices[0].message.content);
-    }
-    
     parseResponse(response) {
+        if (!response) return {};
+        
+        // 打印原始响应，方便调试
+        console.log('========== 模型原始响应 ==========');
+        console.log(response);
+        console.log('========== 响应结束 ==========');
+        
         let jsonStr = response.trim();
         
-        const jsonMatch = jsonStr.match(/```json\s*([\s\S]*?)\s*```/);
-        if (jsonMatch) {
-            jsonStr = jsonMatch[1];
-        }
+        // 移除 ```json 和 ``` 标记
+        jsonStr = jsonStr.replace(/^```json\s*/i, '').replace(/\s*```$/i, '');
         
+        // 尝试直接解析
         try {
             return JSON.parse(jsonStr);
         } catch (e) {
-            console.warn('JSON 解析失败:', jsonStr);
-            return {};
+            // 如果直接解析失败，尝试修复常见问题
+            console.warn('JSON直接解析失败，尝试修复...', e.message);
         }
+        
+        // 尝试修复并重新解析
+        const fixedJson = this.fixJSON(jsonStr);
+        if (fixedJson) {
+            try {
+                return JSON.parse(fixedJson);
+            } catch (e) {
+                console.warn('修复后仍失败，尝试字段提取...');
+            }
+        }
+        
+        // 终极方案：逐字段提取
+        return this.extractFields(jsonStr);
+    }
+    
+    fixJSON(jsonStr) {
+        try {
+            // 移除控制字符
+            let fixed = jsonStr.replace(/[\x00-\x1F\x7F]/g, '');
+            
+            // 处理被截断的情况
+            if (!fixed.trim().endsWith('}')) {
+                // 找到最后一个完整的 "key": "value" 对
+                // 倒序查找 "..." 来定位
+                let pos = fixed.length;
+                let openQuotes = 0;
+                let inString = false;
+                
+                // 从末尾向前扫描，找到字符串闭合的位置
+                for (let i = fixed.length - 1; i >= 0; i--) {
+                    const char = fixed[i];
+                    if (char === '"' && (i === 0 || fixed[i-1] !== '\\')) {
+                        if (!inString) {
+                            // 进入字符串
+                            inString = true;
+                            openQuotes++;
+                        } else {
+                            // 退出字符串
+                            openQuotes--;
+                            if (openQuotes === 0) {
+                                pos = i + 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                if (pos < fixed.length) {
+                    // 截取到最后一个完整字符串结束的位置
+                    fixed = fixed.substring(0, pos);
+                    // 闭合JSON
+                    fixed = fixed.replace(/,\s*$/, '') + '"}';
+                }
+            }
+            
+            return fixed;
+        } catch (e) {
+            return null;
+        }
+    }
+    
+    extractFields(jsonStr) {
+        // 终极方案：逐字段正则提取
+        const result = {};
+        const fields = [
+            'id', 'name', 'gender', 'ethnicity', 'occupation', 'marriage',
+            'diagnosis_wm', 'diagnosis_tcm', 'medical_history', 'smoking_drinking',
+            'allergy', 'surgery', 'medications', 'ct_report', 'fibrosis_location',
+            'gastroscopy', 'biopsy', 'lung_function', 'total_protein', 'albumin',
+            'prealbumin', 'rbc', 'hemoglobin', 'pao2', 'paco2', 'sao2', 'physical_exam'
+        ];
+        
+        for (const field of fields) {
+            // 匹配 "field": "value" 或 "field": "value"
+            // 使用更灵活的正则，容忍引号内包含各种字符
+            const patterns = [
+                new RegExp(`"${field}"\\s*:\\s*"([^"]*)"`, 'i'),  // 标准JSON
+                new RegExp(`"${field}"\\s*:\\s*'([^']*)'`, 'i'),  // 单引号
+                new RegExp(`${field}\\s*:\\s*([^,}\\]\\s]*)`, 'i') // 无引号
+            ];
+            
+            for (const pattern of patterns) {
+                const match = jsonStr.match(pattern);
+                if (match && match[1] && match[1].trim()) {
+                    // 清理提取的值
+                    let value = match[1].trim();
+                    // 移除末尾可能的逗号或多余字符
+                    value = value.replace(/[,，\s]+$/, '');
+                    result[field] = value;
+                    break;
+                }
+            }
+        }
+        
+        console.log('字段提取结果：', Object.keys(result).length, '个字段');
+        return result;
     }
     
     fillForm(data) {
