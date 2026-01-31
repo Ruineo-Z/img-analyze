@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>图片信息提取</title>
+    <title>医疗信息录入</title>
     <link rel="stylesheet" href="src/style.css">
 </head>
 <body>
@@ -13,13 +13,13 @@
         <!-- 头部 -->
         <header class="header">
             <div class="header-top">
-                <h1>📷 信息提取</h1>
+                <h1>🏥 医疗信息录入</h1>
                 <div class="header-actions">
                     <button class="btn-icon" id="downloadBtn" title="下载 Excel">📥</button>
                     <button class="btn-icon" id="settingsBtn" title="设置">⚙️</button>
                 </div>
             </div>
-            <p class="subtitle">拍摄或上传图片，提取身高体重信息</p>
+            <p class="subtitle">拍摄或上传图片，自动提取患者信息</p>
         </header>
 
         <!-- 记录统计 -->
@@ -60,21 +60,470 @@
             </div>
         </section>
 
-        <!-- 表单区域 -->
+        <!-- 表单区域 - 第一部分 -->
         <section class="form-section" id="formSection" hidden>
-            <h2 class="section-title">提取的信息</h2>
+            <h2 class="section-title">第一部分：基本信息</h2>
             <form id="dataForm">
+                <!-- 分组 -->
                 <div class="form-group">
-                    <label for="field_name">姓名</label>
-                    <input type="text" id="field_name" name="name" placeholder="选填">
+                    <label for="field_group">分组</label>
+                    <select id="field_group" name="group">
+                        <option value="">请选择</option>
+                        <option value="GERD合并PF组">GERD合并PF组</option>
+                        <option value="PF组">PF组</option>
+                    </select>
+                </div>
+
+                <!-- ID号 -->
+                <div class="form-group">
+                    <label for="field_id">ID号 <span class="tag tag-blue">识别</span></label>
+                    <input type="text" id="field_id" name="id" placeholder="10位数，000开头" maxlength="10">
+                </div>
+
+                <!-- 姓名 -->
+                <div class="form-group">
+                    <label for="field_name">姓名 <span class="tag tag-blue">识别</span></label>
+                    <input type="text" id="field_name" name="name" placeholder="请输入">
+                </div>
+
+                <!-- 性别 -->
+                <div class="form-group">
+                    <label for="field_gender">性别 <span class="tag tag-blue">识别</span></label>
+                    <select id="field_gender" name="gender">
+                        <option value="">请选择</option>
+                        <option value="男">男</option>
+                        <option value="女">女</option>
+                    </select>
+                </div>
+
+                <!-- 民族 -->
+                <div class="form-group">
+                    <label for="field_ethnicity">民族 <span class="tag tag-blue">识别</span></label>
+                    <input type="text" id="field_ethnicity" name="ethnicity" placeholder="请输入">
+                </div>
+
+                <!-- 身高体重 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="field_height">身高 (M) <span class="tag tag-orange">手动</span></label>
+                        <input type="number" id="field_height" name="height" placeholder="米" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="field_weight">体重 (KG) <span class="tag tag-orange">手动</span></label>
+                        <input type="number" id="field_weight" name="weight" placeholder="公斤" step="0.1">
+                    </div>
+                </div>
+
+                <!-- BMI -->
+                <div class="form-group">
+                    <label for="field_bmi">BMI <span class="tag tag-green">自动计算</span></label>
+                    <input type="number" id="field_bmi" name="bmi" readonly placeholder="自动计算">
+                </div>
+
+                <!-- 职业 -->
+                <div class="form-group">
+                    <label for="field_occupation">职业 <span class="tag tag-blue">识别</span></label>
+                    <input type="text" id="field_occupation" name="occupation" placeholder="请输入">
+                </div>
+
+                <!-- 婚姻 -->
+                <div class="form-group">
+                    <label for="field_marriage">婚姻 <span class="tag tag-blue">识别</span></label>
+                    <select id="field_marriage" name="marriage">
+                        <option value="">请选择</option>
+                        <option value="已婚">已婚</option>
+                        <option value="未婚">未婚</option>
+                        <option value="离异">离异</option>
+                        <option value="丧偶">丧偶</option>
+                    </select>
+                </div>
+
+                <!-- 西医诊断 -->
+                <div class="form-group">
+                    <label for="field_diagnosis_wm">西医诊断 <span class="tag tag-blue">识别</span></label>
+                    <textarea id="field_diagnosis_wm" name="diagnosis_wm" rows="2" placeholder="请输入西医诊断"></textarea>
+                </div>
+
+                <!-- 中医诊断 -->
+                <div class="form-group">
+                    <label for="field_diagnosis_tcm">中医诊断 <span class="tag tag-blue">识别</span></label>
+                    <textarea id="field_diagnosis_tcm" name="diagnosis_tcm" rows="2" placeholder="请输入中医诊断"></textarea>
+                </div>
+
+                <!-- 既往病史用药史 -->
+                <div class="form-group">
+                    <label for="field_medical_history">既往病史用药史 <span class="tag tag-blue">识别</span></label>
+                    <textarea id="field_medical_history" name="medical_history" rows="2" placeholder="有或无，有则填入病史及用药情况"></textarea>
+                </div>
+
+                <!-- 烟酒史 -->
+                <div class="form-group">
+                    <label for="field_smoking_drinking">烟酒史 <span class="tag tag-blue">识别</span></label>
+                    <textarea id="field_smoking_drinking" name="smoking_drinking" rows="3" placeholder="吸烟史：有或无，？支/日，？年，是否戒烟；饮酒史：有或无，？ml/日，？年，是否戒酒"></textarea>
+                </div>
+
+                <!-- 过敏史 -->
+                <div class="form-group">
+                    <label for="field_allergy">过敏史 <span class="tag tag-blue">识别</span></label>
+                    <textarea id="field_allergy" name="allergy" rows="2" placeholder="有或无，有则填入药物及过敏反应"></textarea>
+                </div>
+
+                <!-- 手术史 -->
+                <div class="form-group">
+                    <label for="field_surgery">手术史 <span class="tag tag-blue">识别</span></label>
+                    <textarea id="field_surgery" name="surgery" rows="2" placeholder="有或无，有则填入手术情况"></textarea>
+                </div>
+
+                <!-- 环境接触史 -->
+                <div class="form-group">
+                    <label>环境接触史 <span class="tag tag-orange">手动多选</span></label>
+                    <div class="checkbox-group" id="environmentGroup">
+                        <label class="checkbox-label"><input type="checkbox" name="environment" value="粉尘"> 粉尘</label>
+                        <label class="checkbox-label"><input type="checkbox" name="environment" value="有害气体"> 有害气体</label>
+                        <label class="checkbox-label"><input type="checkbox" name="environment" value="宠物或家禽喂养史"> 宠物或家禽喂养史</label>
+                        <label class="checkbox-label"><input type="checkbox" name="environment" value="无"> 无</label>
+                    </div>
+                </div>
+
+                <!-- 饮食习惯 -->
+                <div class="form-group">
+                    <label>饮食习惯 <span class="tag tag-orange">手动多选</span></label>
+                    <div class="checkbox-group" id="dietGroup">
+                        <label class="checkbox-label"><input type="checkbox" name="diet" value="咖啡"> 咖啡</label>
+                        <label class="checkbox-label"><input type="checkbox" name="diet" value="茶"> 茶</label>
+                        <label class="checkbox-label"><input type="checkbox" name="diet" value="辛辣"> 辛辣</label>
+                        <label class="checkbox-label"><input type="checkbox" name="diet" value="油腻"> 油腻</label>
+                        <label class="checkbox-label"><input type="checkbox" name="diet" value="无"> 无</label>
+                    </div>
+                </div>
+
+                <!-- 幽门螺旋杆菌 -->
+                <div class="form-group">
+                    <label>幽门螺旋杆菌 <span class="tag tag-orange">手动</span></label>
+                    <select id="field_hp" name="hp">
+                        <option value="">请选择</option>
+                        <option value="阳性">阳性</option>
+                        <option value="阴性">阴性</option>
+                    </select>
+                </div>
+
+                <!-- 病程几年 -->
+                <div class="form-group">
+                    <label for="field_duration">病程几年 <span class="tag tag-orange">手动</span></label>
+                    <input type="number" id="field_duration" name="duration" placeholder="请输入病程年数">
+                </div>
+
+                <!-- 当前病程中使用的药物 -->
+                <div class="form-group">
+                    <label for="field_medications">当前病程中使用的药物 <span class="tag tag-blue">识别</span></label>
+                    <textarea id="field_medications" name="medications" rows="2" placeholder="有或无，有则录入药物名称"></textarea>
+                </div>
+
+                <!-- 第二部分：GERDQ评分量表 -->
+                <h2 class="section-title">第二部分：GERDQ评分量表（6×4=24字段）</h2>
+                <div class="form-group">
+                    <label>GERDQ评分 <span class="tag tag-orange">手动打勾</span> <span class="tag tag-green">自动计算</span></label>
+                    <p class="hint">请勾选每个症状最近一周出现的天数，勾选后自动填入对应分值</p>
+                </div>
+                
+                <div class="questionnaire-section">
+                    <style>
+                        .gerdq-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+                        .gerdq-table th { background: #f3f4f6; padding: 0.5rem; text-align: center; border: 1px solid #e5e7eb; }
+                        .gerdq-table td { border: 1px solid #e5e7eb; padding: 0.25rem; text-align: center; }
+                        .gerdq-table td:first-child { background: #f9fafb; text-align: left; font-weight: 500; min-width: 120px; }
+                        .gerdq-cell { width: 50px; }
+                        .gerdq-cell label { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 2px; }
+                        .gerdq-cell input[type="checkbox"] { width: 18px; height: 18px; margin-bottom: 2px; }
+                        .gerdq-cell .cell-value { font-size: 0.65rem; color: #6b7280; }
+                        .gerdq-cell input[type="checkbox"]:checked + .cell-value { color: #2563eb; font-weight: 600; }
+                    </style>
+                    
+                    <table class="gerdq-table">
+                        <thead>
+                            <tr>
+                                <th style="width:35%;">症状</th>
+                                <th class="gerdq-cell">0天</th>
+                                <th class="gerdq-cell">1天</th>
+                                <th class="gerdq-cell">2-3天</th>
+                                <th class="gerdq-cell">4-7天</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1. 醒来时感到烧心</td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_1_0" value="0"><span class="cell-value">0</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_1_1" value="1"><span class="cell-value">1</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_1_2" value="2"><span class="cell-value">2</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_1_3" value="3"><span class="cell-value">3</span></label></td>
+                            </tr>
+                            <tr>
+                                <td>2. 睡眠中因烧心或反流而醒来</td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_2_0" value="0"><span class="cell-value">0</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_2_1" value="1"><span class="cell-value">1</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_2_2" value="2"><span class="cell-value">2</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_2_3" value="3"><span class="cell-value">3</span></label></td>
+                            </tr>
+                            <tr>
+                                <td>3. 除烧心外，醒来时感到胃内容物上涌</td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_3_0" value="3"><span class="cell-value">3</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_3_1" value="2"><span class="cell-value">2</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_3_2" value="1"><span class="cell-value">1</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_3_3" value="0"><span class="cell-value">0</span></label></td>
+                            </tr>
+                            <tr>
+                                <td>4. 进食后感到烧心</td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_4_0" value="1"><span class="cell-value">1</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_4_1" value="2"><span class="cell-value">2</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_4_2" value="3"><span class="cell-value">3</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_4_3" value="0"><span class="cell-value">0</span></label></td>
+                            </tr>
+                            <tr>
+                                <td>5. 进食后感到胃内容物上涌</td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_5_0" value="1"><span class="cell-value">1</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_5_1" value="2"><span class="cell-value">2</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_5_2" value="3"><span class="cell-value">3</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_5_3" value="0"><span class="cell-value">0</span></label></td>
+                            </tr>
+                            <tr>
+                                <td>6. 感到上腹部疼痛</td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_6_0" value="0"><span class="cell-value">0</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_6_1" value="1"><span class="cell-value">1</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_6_2" value="2"><span class="cell-value">2</span></label></td>
+                                <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_6_3" value="3"><span class="cell-value">3</span></label></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="form-group score-result">
+                        <label>GERDQ总分 <span class="tag tag-green">自动计算</span></label>
+                        <input type="number" id="field_gerdq_total" name="gerdq_total" readonly placeholder="0">
+                        <p class="hint">正常：0-2分，GERD可能：≥8分</p>
+                    </div>
+                </div>
+                
+                <div class="questionnaire-section">
+                    <style>
+                        .gerdq-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+                        .gerdq-table th { background: #f3f4f6; padding: 0.5rem; text-align: center; border: 1px solid #e5e7eb; }
+                        .gerdq-table td { border: 1px solid #e5e7eb; padding: 0.25rem; text-align: center; }
+                        .gerdq-table td:first-child { background: #f9fafb; text-align: left; font-weight: 500; }
+                        .gerdq-cell { width: 60px; }
+                        .gerdq-cell select { width: 100%; padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.75rem; }
+                    </style>
+                    
+                    <table class="gerdq-table">
+                        <thead>
+                            <tr>
+                                <th style="width:35%;">症状</th>
+                                <th class="gerdq-cell">0天</th>
+                                <th class="gerdq-cell">1天</th>
+                                <th class="gerdq-cell">2-3天</th>
+                                <th class="gerdq-cell">4-7天</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1. 醒来时感到烧心</td>
+                                <td class="gerdq-cell"><select id="gerdq_1_0" name="gerdq_1_0"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_1_1" name="gerdq_1_1"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_1_2" name="gerdq_1_2"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_1_3" name="gerdq_1_3"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                            </tr>
+                            <tr>
+                                <td>2. 睡眠中因烧心或反流而醒来</td>
+                                <td class="gerdq-cell"><select id="gerdq_2_0" name="gerdq_2_0"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_2_1" name="gerdq_2_1"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_2_2" name="gerdq_2_2"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_2_3" name="gerdq_2_3"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                            </tr>
+                            <tr>
+                                <td>3. 除烧心外，醒来时感到胃内容物上涌</td>
+                                <td class="gerdq-cell"><select id="gerdq_3_0" name="gerdq_3_0"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_3_1" name="gerdq_3_1"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_3_2" name="gerdq_3_2"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_3_3" name="gerdq_3_3"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                            </tr>
+                            <tr>
+                                <td>4. 进食后感到烧心</td>
+                                <td class="gerdq-cell"><select id="gerdq_4_0" name="gerdq_4_0"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_4_1" name="gerdq_4_1"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_4_2" name="gerdq_4_2"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_4_3" name="gerdq_4_3"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                            </tr>
+                            <tr>
+                                <td>5. 进食后感到胃内容物上涌</td>
+                                <td class="gerdq-cell"><select id="gerdq_5_0" name="gerdq_5_0"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_5_1" name="gerdq_5_1"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_5_2" name="gerdq_5_2"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_5_3" name="gerdq_5_3"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                            </tr>
+                            <tr>
+                                <td>6. 感到上腹部疼痛</td>
+                                <td class="gerdq-cell"><select id="gerdq_6_0" name="gerdq_6_0"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_6_1" name="gerdq_6_1"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_6_2" name="gerdq_6_2"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                                <td class="gerdq-cell"><select id="gerdq_6_3" name="gerdq_6_3"><option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="form-group score-result">
+                        <label>GERDQ总分 <span class="tag tag-green">自动计算</span></label>
+                        <input type="number" id="field_gerdq_total" name="gerdq_total" readonly placeholder="0">
+                        <p class="hint">正常：0-2分，GERD可能：≥8分</p>
+                    </div>
+                </div>
+
+                <!-- 第三部分：mMRC呼吸困难评分 -->
+                <h2 class="section-title">第三部分：mMRC呼吸困难评分</h2>
+                <div class="form-group">
+                    <label for="field_mmrc">mMRC分级 <span class="tag tag-orange">手动选择</span></label>
+                    <select id="field_mmrc" name="mmrc">
+                        <option value="">请选择</option>
+                        <option value="0">0级 - 无呼吸困难</option>
+                        <option value="1">1级 - 在平地快速行走或爬坡时出现气短</option>
+                        <option value="2">2级 - 因气短而比同龄人行走缓慢，或行走数分钟后需停下休息</option>
+                        <option value="3">3级 - 行走100米或数分钟后需停下休息</option>
+                        <option value="4">4级 - 因呼吸困难而不能离开家门，或穿衣/脱衣时出现气短</option>
+                    </select>
+                </div>
+
+                <!-- 第四部分：检查报告 -->
+                <h2 class="section-title">第四部分：检查报告</h2>
+                
+                <!-- CT报告 -->
+                <div class="form-group">
+                    <label for="field_ct_report">CT报告 <span class="tag tag-blue">识别</span></label>
+                    <textarea id="field_ct_report" name="ct_report" rows="3" placeholder="请输入CT报告内容"></textarea>
+                </div>
+                
+                <!-- 肺纤维化位置 -->
+                <div class="form-group">
+                    <label for="field_fibrosis_location">肺纤维化的位置 <span class="tag tag-blue">识别</span></label>
+                    <textarea id="field_fibrosis_location" name="fibrosis_location" rows="2" placeholder="请描述肺纤维化位置"></textarea>
+                </div>
+                
+                <!-- 胃镜报告 -->
+                <div class="form-group">
+                    <label for="field_gastroscopy">胃镜报告 <span class="tag tag-blue">识别</span></label>
+                    <textarea id="field_gastroscopy" name="gastroscopy" rows="3" placeholder="有或无，有则填入报告内容"></textarea>
+                </div>
+                
+                <!-- 活检报告 -->
+                <div class="form-group">
+                    <label for="field_biopsy">活检报告 <span class="tag tag-blue">识别</span></label>
+                    <textarea id="field_biopsy" name="biopsy" rows="3" placeholder="有或无，有则填入报告内容"></textarea>
+                </div>
+                
+                <!-- 肺功能报告 -->
+                <div class="form-group">
+                    <label for="field_lung_function">肺功能报告 <span class="tag tag-blue">识别</span></label>
+                    <textarea id="field_lung_function" name="lung_function" rows="3" placeholder="有或无，有则填入报告内容"></textarea>
+                </div>
+                
+                <!-- 营养指标 -->
+                <h2 class="section-title">营养指标</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="field_total_protein">总蛋白(g/L) <span class="tag tag-blue">识别</span></label>
+                        <input type="number" id="field_total_protein" name="total_protein" step="0.1" placeholder="请输入">
+                    </div>
+                    <div class="form-group">
+                        <label for="field_albumin">白蛋白(g/L) <span class="tag tag-blue">识别</span></label>
+                        <input type="number" id="field_albumin" name="albumin" step="0.1" placeholder="请输入">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="field_prealbumin">前白蛋白(mg/L) <span class="tag tag-blue">识别</span></label>
+                        <input type="number" id="field_prealbumin" name="prealbumin" step="0.1" placeholder="请输入">
+                    </div>
+                    <div class="form-group">
+                        <label for="field_rbc">红细胞计数(×10¹²/L) <span class="tag tag-blue">识别</span></label>
+                        <input type="number" id="field_rbc" name="rbc" step="0.01" placeholder="请输入">
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="field_height">身高 (cm)</label>
-                    <input type="number" id="field_height" name="height" placeholder="选填">
+                    <label for="field_hemoglobin">血红蛋白(g/L) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" id="field_hemoglobin" name="hemoglobin" step="0.1" placeholder="请输入">
                 </div>
+                
+                <!-- 血气分析指标 -->
+                <h2 class="section-title">血气分析指标</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="field_pao2">氧分压PaO₂(mmHg) <span class="tag tag-blue">识别</span></label>
+                        <input type="number" id="field_pao2" name="pao2" step="0.1" placeholder="请输入">
+                    </div>
+                    <div class="form-group">
+                        <label for="field_paco2">二氧化碳分压PaCO₂(mmHg) <span class="tag tag-blue">识别</span></label>
+                        <input type="number" id="field_paco2" name="paco2" step="0.1" placeholder="请输入">
+                    </div>
+                    <div class="form-group">
+                        <label for="field_sao2">血氧饱和度SaO₂(%) <span class="tag tag-blue">识别</span></label>
+                        <input type="number" id="field_sao2" name="sao2" step="0.1" placeholder="请输入">
+                    </div>
+                </div>
+                
+                <!-- 吸氧浓度和氧合指数 -->
+                <h2 class="section-title">氧合评估</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="field_oxygen_flow">氧流量(L/min) <span class="tag tag-orange">手动</span></label>
+                        <input type="number" id="field_oxygen_flow" name="oxygen_flow" step="0.1" placeholder="如：3">
+                    </div>
+                    <div class="form-group">
+                        <label for="field_oxygen_concentration">吸氧浓度(%) <span class="tag tag-green">自动计算</span></label>
+                        <input type="number" id="field_oxygen_concentration" name="oxygen_concentration" readonly placeholder="自动计算">
+                    </div>
+                </div>
+                <div class="form-group score-result">
+                    <label for="field_pao2">氧分压PaO₂(mmHg) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" id="field_pao2" name="pao2" step="0.1" placeholder="请输入">
+                </div>
+                <div class="form-group score-result">
+                    <label>氧合指数 <span class="tag tag-green">自动计算</span></label>
+                    <input type="number" id="field_oxygen_index" name="oxygen_index" readonly placeholder="PaO₂/FiO₂">
+                    <p class="hint">正常值：400-500 mmHg，＜300提示呼吸衰竭</p>
+                </div>
+                
+                <!-- 呼吸道病原体检测 -->
+                <h2 class="section-title">呼吸道病原体检测</h2>
                 <div class="form-group">
-                    <label for="field_weight">体重 (kg)</label>
-                    <input type="number" id="field_weight" name="weight" placeholder="选填" step="0.1">
+                    <label>病原体检测 <span class="tag tag-orange">手动多选</span></label>
+                    <div class="checkbox-group" id="pathogenGroup">
+                        <label class="checkbox-label"><input type="checkbox" name="pathogen" value="病毒"> 病毒</label>
+                        <label class="checkbox-label"><input type="checkbox" name="pathogen" value="革兰阳性菌"> 革兰阳性菌</label>
+                        <label class="checkbox-label"><input type="checkbox" name="pathogen" value="革兰阴性菌"> 革兰阴性菌</label>
+                        <label class="checkbox-label"><input type="checkbox" name="pathogen" value="混合"> 混合</label>
+                        <label class="checkbox-label"><input type="checkbox" name="pathogen" value="特殊细菌"> 特殊细菌</label>
+                        <label class="checkbox-label"><input type="checkbox" name="pathogen" value="无"> 无</label>
+                    </div>
+                </div>
+                
+                <!-- 体格检查异常结果 -->
+                <h2 class="section-title">体格检查异常结果</h2>
+                <div class="form-group">
+                    <label for="field_physical_exam">体格检查异常 <span class="tag tag-blue">识别</span></label>
+                    <textarea id="field_physical_exam" name="physical_exam" rows="5" placeholder="请输入异常结果，包括：①一般情况(神智/精神状态/语音/步态)②皮肤及浅表淋巴结③头颈部④胸部⑤腹部⑥神经系统⑦泌尿生殖系统⑧脊柱四肢⑨其他"></textarea>
+                </div>
+
+                <!-- 第五部分：中医问诊评分 -->
+                <h2 class="section-title">第五部分：中医问诊评分</h2>
+                <div class="form-group">
+                    <label>中医问诊 <span class="tag tag-orange">手动选择</span> <span class="tag tag-green">自动计算</span></label>
+                    <p class="hint">每项0（无）1（轻度）2（中度）3（重度），总分自动计算</p>
+                </div>
+                
+                <div id="tcmQuestionnaire" class="tcm-section">
+                    <!-- 中医问诊项目由JS动态生成 -->
+                </div>
+                
+                <div class="form-group score-result tcm-score">
+                    <label>中医问诊总分</label>
+                    <input type="number" id="field_tcm_total" name="tcm_total" readonly placeholder="0">
+                    <p class="hint">各分类评分汇总</p>
                 </div>
                 
                 <div class="form-actions">
@@ -102,6 +551,25 @@
                 <p class="empty-tip">暂无记录</p>
             </div>
         </section>
+    </div>
+
+    <!-- 日期选择弹窗 -->
+    <div class="modal" id="dateSelectModal" hidden>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>选择导出日期</h3>
+                <button class="modal-close" id="closeDateSelect">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>导出日期</label>
+                    <select id="dateSelect">
+                        <option value="">请选择日期</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="confirmExport">导出 Excel</button>
+            </div>
+        </div>
     </div>
 
     <!-- 设置弹窗 -->

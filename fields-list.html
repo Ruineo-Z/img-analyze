@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医疗信息录入 - 完整字段清单</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f3f4f6;
+            color: #1f2937;
+            line-height: 1.6;
+            padding: 1rem;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .header h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+        .header p { opacity: 0.9; }
+        .stats {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        .stat-item {
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+        .stat-num { font-size: 1.5rem; font-weight: bold; }
+        .stat-label { font-size: 0.75rem; opacity: 0.9; }
+        
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #6366f1;
+        }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        .section-count {
+            background: #6366f1;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+        }
+        
+        .field-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .field-table th {
+            background: #f9fafb;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .field-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .field-table tr:hover { background: #f9fafb; }
+        .field-name { font-weight: 500; color: #111827; }
+        .tag {
+            display: inline-block;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.625rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 0.5rem;
+        }
+        .tag-blue { background: #dbeafe; color: #1d4ed8; }
+        .tag-orange { background: #ffedd5; color: #c2410c; }
+        .tag-green { background: #dcfce7; color: #15803d; }
+        
+        .sub-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px dashed #e5e7eb;
+        }
+        .sub-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #6366f1;
+            margin-bottom: 0.75rem;
+        }
+        
+        .tcm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .tcm-item {
+            background: #f3f4f6;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .tcm-item span:first-child { color: #374151; }
+        .tcm-score { color: #6366f1; font-weight: 500; }
+        
+        .summary-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            z-index: 100;
+        }
+        .summary-item {
+            text-align: center;
+        }
+        .summary-num {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #6366f1;
+        }
+        .summary-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        body { padding-bottom: 100px; }
+        
+        .collapsible {
+            cursor: pointer;
+            user-select: none;
+        }
+        .collapsible::after {
+            content: ' ▼';
+            font-size: 0.75rem;
+            transition: transform 0.2s;
+        }
+        .collapsible.collapsed::after {
+            transform: rotate(-90deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 医疗信息录入系统</h1>
+                <p>完整字段清单 - 共 5 个部分，<strong style="color:#fbbf24;">197+</strong> 字段</p>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-num">5</div>
+                        <div class="stat-label">部分</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-num">197+</div>
+                        <div class="stat-label">字段</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-num">5</div>
+                        <div class="stat-label">自动计算</div>
+                    </div>
+                </div>
+        </div>
+
+        <!-- 第一部分 -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">第一部分：基本信息</span>
+                <span class="section-count">19 字段</span>
+            </div>
+            <table class="field-table">
+                <thead>
+                    <tr>
+                        <th style="width:25%">字段名</th>
+                        <th style="width:15%">类型</th>
+                        <th>说明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="field-name">分组</td><td><span class="tag tag-orange">手动</span></td><td>GERD合并PF组 / PF组</td></tr>
+                    <tr><td class="field-name">ID号</td><td><span class="tag tag-blue">识别</span></td><td>10位数，000开头</td></tr>
+                    <tr><td class="field-name">姓名</td><td><span class="tag tag-blue">识别</span></td><td>患者姓名</td></tr>
+                    <tr><td class="field-name">性别</td><td><span class="tag tag-blue">识别</span></td><td>男 / 女</td></tr>
+                    <tr><td class="field-name">民族</td><td><span class="tag tag-blue">识别</span></td><td>民族</td></tr>
+                    <tr><td class="field-name">身高</td><td><span class="tag tag-orange">手动</span></td><td>单位：米(M)</td></tr>
+                    <tr><td class="field-name">体重</td><td><span class="tag tag-orange">手动</span></td><td>单位：公斤(KG)</td></tr>
+                    <tr><td class="field-name">BMI</td><td><span class="tag tag-green">自动</span></td><td>体重/(身高×身高)</td></tr>
+                    <tr><td class="field-name">职业</td><td><span class="tag tag-blue">识别</span></td><td>患者职业</td></tr>
+                    <tr><td class="field-name">婚姻</td><td><span class="tag tag-blue">识别</span></td><td>已婚/未婚/离异/丧偶</td></tr>
+                    <tr><td class="field-name">西医诊断</td><td><span class="tag tag-blue">识别</span></td><td>Western Medicine Diagnosis</td></tr>
+                    <tr><td class="field-name">中医诊断</td><td><span class="tag tag-blue">识别</span></td><td>TCM Diagnosis</td></tr>
+                    <tr><td class="field-name">既往病史用药史</td><td><span class="tag tag-blue">识别</span></td><td>有或无 + 详情</td></tr>
+                    <tr><td class="field-name">烟酒史</td><td><span class="tag tag-blue">识别</span></td><td>详细格式</td></tr>
+                    <tr><td class="field-name">过敏史</td><td><span class="tag tag-blue">识别</span></td><td>有或无 + 详情</td></tr>
+                    <tr><td class="field-name">手术史</td><td><span class="tag tag-blue">识别</span></td><td>有或无 + 详情</td></tr>
+                    <tr><td class="field-name">环境接触史</td><td><span class="tag tag-orange">手动多选</span></td><td>粉尘/有害气体/宠物喂养/无（可多选）</td></tr>
+                    <tr><td class="field-name">饮食习惯</td><td><span class="tag tag-orange">手动多选</span></td><td>咖啡/茶/辛辣/油腻（可多选）</td></tr>
+                    <tr><td class="field-name">幽门螺旋杆菌</td><td><span class="tag tag-orange">手动</span></td><td>阳性/阴性</td></tr>
+                    <tr><td class="field-name">病程几年</td><td><span class="tag tag-orange">手动</span></td><td>病程年数</td></tr>
+                    <tr><td class="field-name">当前用药</td><td><span class="tag tag-blue">识别</span></td><td>有或无 + 药物名称</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 第二部分 -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">第二部分：GERDQ评分量表</span>
+                <span class="section-count">24 字段</span>
+            </div>
+            <p style="font-size:0.875rem;color:#6b7280;margin-bottom:1rem;">6问题 × 4天数区间 = 24字段，每个区间0-3分</p>
+            
+            <div class="sub-title">GERDQ评分矩阵（6问题 × 4天数区间 = 24字段）</div>
+            <table class="field-table">
+                <thead>
+                    <tr>
+                        <th style="width:35%">问题</th>
+                        <th style="width:16%">0天</th>
+                        <th style="width:16%">1天</th>
+                        <th style="width:16%">2-3天</th>
+                        <th style="width:16%">4-7天</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="field-name">1. 醒来时烧心</td><td>GERDQ_醒来时烧心_0天</td><td>GERDQ_醒来时烧心_1天</td><td>GERDQ_醒来时烧心_2-3天</td><td>GERDQ_醒来时烧心_4-7天</td></tr>
+                    <tr><td class="field-name">2. 睡眠中醒来</td><td>GERDQ_睡眠中醒来_0天</td><td>GERDQ_睡眠中醒来_1天</td><td>GERDQ_睡眠中醒来_2-3天</td><td>GERDQ_睡眠中醒来_4-7天</td></tr>
+                    <tr><td class="field-name">3. 醒来时反流</td><td>GERDQ_醒来时反流_0天</td><td>GERDQ_醒来时反流_1天</td><td>GERDQ_醒来时反流_2-3天</td><td>GERDQ_醒来时反流_4-7天</td></tr>
+                    <tr><td class="field-name">4. 进食后烧心</td><td>GERDQ_进食后烧心_0天</td><td>GERDQ_进食后烧心_1天</td><td>GERDQ_进食后烧心_2-3天</td><td>GERDQ_进食后烧心_4-7天</td></tr>
+                    <tr><td class="field-name">5. 进食后反流</td><td>GERDQ_进食后反流_0天</td><td>GERDQ_进食后反流_1天</td><td>GERDQ_进食后反流_2-3天</td><td>GERDQ_进食后反流_4-7天</td></tr>
+                    <tr><td class="field-name">6. 上腹痛</td><td>GERDQ_上腹痛_0天</td><td>GERDQ_上腹痛_1天</td><td>GERDQ_上腹痛_2-3天</td><td>GERDQ_上腹痛_4-7天</td></tr>
+                    <tr style="background:#f0fdf4;"><td class="field-name" colspan="4">总分：GERDQ_总分（自动计算，0-72分）</td></tr>
+                </tbody>
+            </table>
+            
+            <p style="font-size:0.8rem;color:#6b7280;margin-top:1rem;">
+                <strong>评分说明：</strong>每个单元格表示过去7天中该症状在该天数区间出现的次数 → 0分(无)/1分(1次)/2分(2次)/3分(3次及以上)<br>
+                <strong>结果判断：</strong>正常 0-2分 | GERD可能 ≥8分
+            </p>
+        </div>
+
+        <!-- 第三部分 -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">第三部分：mMRC呼吸困难评分</span>
+                <span class="section-count">1 字段</span>
+            </div>
+            <table class="field-table">
+                <thead>
+                    <tr>
+                        <th style="width:30%">字段名</th>
+                        <th style="width:20%">类型</th>
+                        <th>说明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="field-name">mMRC分级</td><td><span class="tag tag-orange">手动</span></td><td>0-4级</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 第四部分 -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">第四部分：检查报告</span>
+                <span class="section-count">25+ 字段</span>
+            </div>
+            
+            <div class="sub-title">4.1 检查报告（5字段）</div>
+            <table class="field-table">
+                <tbody>
+                    <tr><td class="field-name">CT报告</td><td><span class="tag tag-blue">识别</span></td><td>CT检查报告内容</td></tr>
+                    <tr><td class="field-name">肺纤维化的位置</td><td><span class="tag tag-blue">识别</span></td><td>纤维化位置描述</td></tr>
+                    <tr><td class="field-name">胃镜报告</td><td><span class="tag tag-blue">识别</span></td><td>有或无 + 报告内容</td></tr>
+                    <tr><td class="field-name">活检报告</td><td><span class="tag tag-blue">识别</span></td><td>有或无 + 报告内容</td></tr>
+                    <tr><td class="field-name">肺功能报告</td><td><span class="tag tag-blue">识别</span></td><td>有或无 + 报告内容</td></tr>
+                </tbody>
+            </table>
+            
+            <div class="sub-title">4.2 营养指标（5字段）</div>
+            <table class="field-table">
+                <tbody>
+                    <tr><td class="field-name">总蛋白</td><td><span class="tag tag-blue">识别</span></td><td>g/L</td></tr>
+                    <tr><td class="field-name">白蛋白</td><td><span class="tag tag-blue">识别</span></td><td>g/L</td></tr>
+                    <tr><td class="field-name">前白蛋白</td><td><span class="tag tag-blue">识别</span></td><td>mg/L</td></tr>
+                    <tr><td class="field-name">红细胞计数</td><td><span class="tag tag-blue">识别</span></td><td>×10¹²/L</td></tr>
+                    <tr><td class="field-name">血红蛋白</td><td><span class="tag tag-blue">识别</span></td><td>g/L</td></tr>
+                </tbody>
+            </table>
+            
+            <div class="sub-title">4.3 血气分析指标（3字段）</div>
+            <table class="field-table">
+                <tbody>
+                    <tr><td class="field-name">氧分压PaO₂</td><td><span class="tag tag-blue">识别</span></td><td>mmHg</td></tr>
+                    <tr><td class="field-name">二氧化碳分压PaCO₂</td><td><span class="tag tag-blue">识别</span></td><td>mmHg</td></tr>
+                    <tr><td class="field-name">血氧饱和度SaO₂</td><td><span class="tag tag-blue">识别</span></td><td>%</td></tr>
+                </tbody>
+            </table>
+            
+            <div class="sub-title">4.4 氧合评估（3字段）</div>
+            <table class="field-table">
+                <tbody>
+                    <tr><td class="field-name">氧流量</td><td><span class="tag tag-orange">手动</span></td><td>L/min</td></tr>
+                    <tr><td class="field-name">吸氧浓度</td><td><span class="tag tag-green">自动</span></td><td>%，公式：21 + 4×氧流量</td></tr>
+                    <tr><td class="field-name">氧合指数</td><td><span class="tag tag-green">自动</span></td><td>PaO₂ / FiO₂ × 100</td></tr>
+                </tbody>
+            </table>
+            
+            <div class="sub-title">其他字段</div>
+            <table class="field-table">
+                <tbody>
+                    <tr><td class="field-name">呼吸道病原体</td><td><span class="tag tag-orange">手动</span></td><td>无/病毒/革兰阳性菌/格兰阴性菌/混合/特殊细菌</td></tr>
+                    <tr><td class="field-name">体格检查异常</td><td><span class="tag tag-blue">识别</span></td><td>9项检查内容</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 第五部分 -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">第五部分：中医问诊评分</span>
+                <span class="section-count">约150 字段</span>
+            </div>
+            <p style="font-size:0.875rem;color:#6b7280;margin-bottom:1rem;">评分标准：0分(无) - 3分(重度)，每项单独计分，汇总显示总分</p>
+            
+            <div class="sub-title">一、寒热（12项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>喜凉恶热</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>喜温恶凉</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>经常畏冷</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>容易感冒</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>经常恶风</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>脘腹腰背冷</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>四肢凉</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>下肢冷甚</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>关节冷</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>潮热</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>手足心烧</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>发热</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">二、汗出（5项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>自汗</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>盗汗</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>出虚汗或易出汗</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>局部汗多</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>但头汗出</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">三、疼痛部位（10项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>头痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>咽喉痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>胸痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>胁痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>脘腹痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>腹痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>关节痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>肌肉痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>腰痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>背痛</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">四、疼痛性质（15项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>胀痛或窜痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>绞痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>刺痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>固定痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>游走痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>灼痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>冷痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>隐痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>痛喜按</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>痛拒按</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>夜间痛甚</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>得食痛缓</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>进食痛甚</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>阴雨天加重</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>气行觉舒</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">五、头身不适（20项） → 滑动查看</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>头晕</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>眼花</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>耳久鸣</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>喷嚏</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>鼻塞流清涕</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>流浊涕</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>喉痒</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>咽部异物感</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>鼻痒</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>心悸</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>胸闷</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>胁胀</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>脘痞胀</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>胃脘嘈杂</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>腹胀</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>头重脚轻感</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>倦怠乏力</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>身体酸重</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>腰膝酸软</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>皮肤瘙痒</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">六、睡眠（4项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>失眠</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>多梦</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>睡眠不实易醒</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>嗜睡</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">七、情志（5项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>善悲易哭</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>心烦</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>胆怯易惊</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>情志抑郁</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>情绪易激动</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">八、声音（4项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>懒言</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>声低</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>声音洪亮</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>声音重浊</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">九、咳痰喘（17项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>咳嗽</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>干咳</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>吐痰</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>痰多质稠</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>痰少质稠</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>痰黏难咳</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>痰多质稀</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>痰少质稀</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>泡沫痰多</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>痰色白</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>痰色黄</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>腥臭痰</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>痰中带血</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>痰滑易咳</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>气喘</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>气短</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>喘不能卧</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">十、饮食口味（17项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>口不渴</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>口渴</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>纳呆恶食</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>进食无味</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>饥不欲食</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>食后痞胀</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>多食易饥</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>厌油腻</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>口苦</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>口臭</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>口黏腻</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>恶心</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>呕吐</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>干呕</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>嗳气</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>嗳气酸馊</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>呃逆</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">十一、大便（15项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>经常腹泻</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>经常便秘</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>大便干结</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>经常便溏</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>大便先干后稀</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>大便时结时溏</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>大便有黏液</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>大便腥腐臭气</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>完谷不化</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>排便无力</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>排便不爽</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>排便困难</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>腹痛欲泻</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>矢气多</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>矢气甚臭</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">十二、小便（10项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>长期尿频</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>排尿无力</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>夜尿多</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>尿短黄</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>尿清长</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>小便特多</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>尿少</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>排尿灼热</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>排尿涩痛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>余尿不尽</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">十三、颈胸腹部体征（5项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>气息微弱</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>三凹征阳性</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>肺部干啰音</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>肺部湿罗音</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>桶状胸</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">十四、形体肌肤（5项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>身体素弱</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>形体消瘦</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>形体肥胖</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>水肿</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>肌肤甲错</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">十五、舌象（25项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>舌淡红</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌淡胖</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌淡紫</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌赤</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌绛</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌红胖</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌黯红</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌尖红</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌边红</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌起芒刺</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌有裂纹</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌紫黯</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌边有齿痕</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌体干燥</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌下络脉曲张</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌苔薄白</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌苔白</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌苔腐垢</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌苔黄</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌苔灰黑</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌苔黄白相间</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌苔腻</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>苔剥少无</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌苔润滑</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>舌苔干燥</span><span class="tcm-score">0-3</span></div>
+            </div>
+            
+            <div class="sub-title">十六、脉象（10项）</div>
+            <div class="tcm-grid">
+                <div class="tcm-item"><span>脉浮</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>脉沉</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>脉数</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>脉洪</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>脉细</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>脉缓</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>脉弦</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>脉滑</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>脉涩</span><span class="tcm-score">0-3</span></div>
+                <div class="tcm-item"><span>脉弱</span><span class="tcm-score">0-3</span></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 底部统计栏 -->
+    <div class="summary-bar">
+        <div class="summary-item">
+            <div class="summary-num">197+</div>
+            <div class="summary-label">总字段数</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-num">5</div>
+            <div class="summary-label">部分</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-num">5</div>
+            <div class="summary-label">自动计算</div>
+        </div>
+    </div>
+</body>
+</html>

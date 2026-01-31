@@ -7,19 +7,162 @@ class ImageAnalyzerApp {
         this.apiKey = '';
         this.currentImageBase64 = '';
         
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.init());
+        } else {
+            this.init();
+        }
+    }
+    
+    init() {
+        console.log('=== init called ===');
         this.initElements();
         this.bindEvents();
         
-        // 初始化数据库后再加载数据
         this.initDB().then(() => {
             this.loadApiKey();
             this.loadTodayRecords();
+            this.initTCMQuestionnaire();
         });
     }
 
+    // 中医问诊数据结构
+    getTCMData() {
+        return {
+            '一、寒热': ['喜凉恶热', '喜温恶凉', '经常畏冷', '容易感冒', '经常恶风', '脘腹腰背冷', '四肢凉', '下肢冷甚', '关节冷', '潮热', '手足心烧', '发热'],
+            '二、汗出': ['自汗', '盗汗', '出虚汗或易出汗', '局部汗多', '但头汗出'],
+            '三、疼痛部位': ['头痛', '咽喉痛', '胸痛', '胁痛', '脘腹痛', '腹痛', '关节痛', '肌肉痛', '腰痛', '背痛'],
+            '四、疼痛性质': ['胀痛或窜痛', '绞痛', '刺痛', '固定痛', '游走痛', '灼痛', '冷痛', '隐痛', '痛喜按或按之舒', '痛拒按或压痛甚', '夜间痛甚', '得食痛缓', '进食痛甚', '阴雨天疼痛加重', '气行觉舒'],
+            '五、头身不适': ['头晕', '眼花', '耳久鸣', '喷嚏', '鼻塞流清涕', '流浊涕', '喉痒', '咽部异物感', '鼻痒', '心悸', '胸闷', '胁胀', '脘痞胀', '胃脘嘈杂', '腹胀', '头重脚轻感', '倦怠乏力', '身体酸（困）重', '腰膝酸软', '皮肤瘙痒'],
+            '六、睡眠': ['失眠', '多梦', '睡眠不实易醒', '嗜睡'],
+            '七、情志': ['善悲易哭', '心烦', '胆怯易惊', '情志抑郁或忧虑、孤僻', '情绪易激动'],
+            '八、声音': ['懒言', '声低', '声音洪亮', '声音重浊'],
+            '九、咳痰喘': ['咳嗽', '干咳', '吐痰', '痰多质稠', '痰少质稠', '痰黏难咳', '痰多质稀', '痰少质稀', '泡沫痰多', '痰色白', '痰色黄', '腥臭痰', '痰中带血', '痰滑易咳', '气喘', '气短', '喘不能卧'],
+            '十、饮食口味': ['口不渴', '口渴', '纳呆恶食', '进食无味', '饥不欲食', '食后痞胀', '多食易饥', '厌油腻', '口苦', '口臭', '口黏腻', '恶心', '呕吐', '干呕', '嗳气', '嗳气酸馊', '呃逆'],
+            '十一、大便': ['经常腹泻', '经常便秘', '大便干结', '经常便溏', '大便先干后稀', '大便时结时溏', '大便有黏液', '大便腥腐臭气', '完谷不化', '排便无力', '排便不爽', '排便困难', '腹痛欲泻', '矢气多', '矢气甚臭'],
+            '十二、小便': ['长期尿频', '排尿无力', '夜尿多', '尿短黄', '尿清长', '小便特多', '尿少', '排尿灼热', '排尿涩痛', '余尿不尽'],
+            '十三、颈胸腹部体征': ['气息微弱', '三凹征阳性', '肺部干啰音', '肺部湿罗音', '桶状胸'],
+            '十四、形体肌肤': ['身体素弱', '形体消瘦', '形体肥胖', '水肿', '肌肤甲错'],
+            '十五、舌象': ['舌淡红', '舌淡胖', '舌淡紫', '舌赤', '舌绛', '舌红胖', '舌黯红', '舌尖红', '舌边红', '舌起芒刺', '舌有裂纹', '舌紫黯', '舌边有齿痕', '舌体干燥', '舌下络脉曲张', '舌苔薄白', '舌苔白', '舌苔腐垢', '舌苔黄', '舌苔灰黑', '舌苔黄白相间', '舌苔腻', '苔剥、少、无', '舌苔润滑', '舌苔干燥'],
+            '十六、脉象': ['脉浮', '脉沉', '脉数', '脉洪', '脉细', '脉缓', '脉弦', '脉滑', '脉涩', '脉弱']
+        };
+    }
+
+    initTCMQuestionnaire() {
+        const container = document.getElementById('tcmQuestionnaire');
+        if (!container) return;
+        
+        const tcmData = this.getTCMData();
+        this.tcmFields = {}; // 存储所有TCM字段引用
+        
+        for (const [category, items] of Object.entries(tcmData)) {
+            const categoryDiv = document.createElement('details');
+            categoryDiv.className = 'tcm-category';
+            
+            const summaryDiv = document.createElement('summary');
+            summaryDiv.innerHTML = `
+                <span class="tcm-category-summary">
+                    <span>${category}</span>
+                    <span class="tcm-category-score" id="score_${category.split('、')[0]}">0分</span>
+                </span>
+            `;
+            
+            const itemsDiv = document.createElement('div');
+            itemsDiv.className = 'tcm-items';
+            
+            items.forEach(item => {
+                const fieldName = `tcm_${category.split('、')[0]}_${item}`;
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'tcm-item';
+                itemDiv.innerHTML = `
+                    <label for="field_${fieldName}">${item}</label>
+                    <select id="field_${fieldName}" name="${fieldName}" class="tcm-select">
+                        <option value="0">0分 - 无</option>
+                        <option value="1">1分 - 轻度</option>
+                        <option value="2">2分 - 中度</option>
+                        <option value="3">3分 - 重度</option>
+                    </select>
+                `;
+                itemsDiv.appendChild(itemDiv);
+                this.tcmFields[fieldName] = itemDiv.querySelector('select');
+            });
+            
+            categoryDiv.appendChild(summaryDiv);
+            categoryDiv.appendChild(itemsDiv);
+            container.appendChild(categoryDiv);
+            
+            // 为该分类的所有下拉框添加事件监听
+            itemsDiv.querySelectorAll('select').forEach(select => {
+                select.addEventListener('change', () => this.calculateTCMScore(category));
+            });
+        }
+    }
+
+    calculateTCMScore(category) {
+        const categoryNum = category.split('、')[0];
+        const items = this.getTCMData()[category];
+        let total = 0;
+        
+        items.forEach(item => {
+            const fieldName = `tcm_${categoryNum}_${item}`;
+            const select = document.getElementById(`field_${fieldName}`);
+            if (select) {
+                total += parseInt(select.value) || 0;
+            }
+        });
+        
+        // 更新分类分数显示
+        const scoreEl = document.getElementById(`score_${categoryNum}`);
+        if (scoreEl) {
+            scoreEl.textContent = `${total}分`;
+        }
+        
+        // 更新总分
+        this.calculateTCMTotal();
+    }
+
+    calculateTCMTotal() {
+        let total = 0;
+        const tcmData = this.getTCMData();
+        
+        for (const [category, items] of Object.entries(tcmData)) {
+            const categoryNum = category.split('、')[0];
+            items.forEach(item => {
+                const fieldName = `tcm_${categoryNum}_${item}`;
+                const select = document.getElementById(`field_${fieldName}`);
+                if (select) {
+                    total += parseInt(select.value) || 0;
+                }
+            });
+        }
+        
+        this.fieldTcmTotal.value = total;
+    }
+
+    collectTCMData() {
+        const data = {};
+        const tcmData = this.getTCMData();
+        
+        for (const [category, items] of Object.entries(tcmData)) {
+            const categoryNum = category.split('、')[0];
+            items.forEach(item => {
+                const fieldName = `tcm_${categoryNum}_${item}`;
+                const select = document.getElementById(`field_${fieldName}`);
+                if (select) {
+                    data[fieldName] = select.value;
+                }
+            });
+        }
+        
+        return data;
+    }
+
     initElements() {
-        this.uploadArea = document.getElementById('uploadArea');
+        console.log('=== initElements called ===');
+        console.log('document.readyState:', document.readyState);
+        console.log('formSection exists:', !!document.getElementById('formSection'));
         this.uploadSection = document.getElementById('uploadSection');
+        this.uploadArea = document.getElementById('uploadArea');
         this.fileInput = document.getElementById('fileInput');
         this.previewSection = document.getElementById('previewSection');
         this.imagePreview = document.getElementById('imagePreview');
@@ -38,11 +181,79 @@ class ImageAnalyzerApp {
         this.closeSettings = document.getElementById('closeSettings');
         this.apiKeyInput = document.getElementById('apiKeyInput');
         this.saveApiKeyBtn = document.getElementById('saveApiKey');
+        // 日期选择弹窗
+        this.dateSelectModal = document.getElementById('dateSelectModal');
+        this.closeDateSelect = document.getElementById('closeDateSelect');
+        this.dateSelect = document.getElementById('dateSelect');
+        this.confirmExport = document.getElementById('confirmExport');
         this.toast = document.getElementById('toast');
         
+        // 第一部分字段
+        this.fieldGroup = document.getElementById('field_group');
+        this.fieldId = document.getElementById('field_id');
         this.fieldName = document.getElementById('field_name');
+        this.fieldGender = document.getElementById('field_gender');
+        this.fieldEthnicity = document.getElementById('field_ethnicity');
         this.fieldHeight = document.getElementById('field_height');
         this.fieldWeight = document.getElementById('field_weight');
+        this.fieldBmi = document.getElementById('field_bmi');
+        this.fieldOccupation = document.getElementById('field_occupation');
+        this.fieldMarriage = document.getElementById('field_marriage');
+        this.fieldDiagnosisWm = document.getElementById('field_diagnosis_wm');
+        this.fieldDiagnosisTcm = document.getElementById('field_diagnosis_tcm');
+        this.fieldMedicalHistory = document.getElementById('field_medical_history');
+        this.fieldSmokingDrinking = document.getElementById('field_smoking_drinking');
+        this.fieldAllergy = document.getElementById('field_allergy');
+        this.fieldSurgery = document.getElementById('field_surgery');
+        // 环境接触史（多选）
+        this.checkboxEnvironments = document.querySelectorAll('input[name="environment"]');
+        // 饮食习惯（多选）
+        this.checkboxDiets = document.querySelectorAll('input[name="diet"]');
+        // 幽门螺旋杆菌
+        this.fieldHp = document.getElementById('field_hp');
+        this.fieldDuration = document.getElementById('field_duration');
+        this.fieldMedications = document.getElementById('field_medications');
+        
+        // 第二部分：GERDQ评分字段（6问题 × 4天数区间 = 24字段） - 现在使用复选框
+        // 不再需要预先存储引用，使用querySelector动态查找
+        
+        // 第三部分：mMRC字段
+        this.fieldMmrc = document.getElementById('field_mmrc');
+        
+        // 第四部分：检查报告字段
+        this.fieldCtReport = document.getElementById('field_ct_report');
+        this.fieldFibrosisLocation = document.getElementById('field_fibrosis_location');
+        this.fieldGastroscopy = document.getElementById('field_gastroscopy');
+        this.fieldBiopsy = document.getElementById('field_biopsy');
+        this.fieldLungFunction = document.getElementById('field_lung_function');
+        
+        // 营养指标字段
+        this.fieldTotalProtein = document.getElementById('field_total_protein');
+        this.fieldAlbumin = document.getElementById('field_albumin');
+        this.fieldPrealbumin = document.getElementById('field_prealbumin');
+        this.fieldRbc = document.getElementById('field_rbc');
+        this.fieldHemoglobin = document.getElementById('field_hemoglobin');
+        
+        // 血气分析字段
+        this.fieldPao2 = document.getElementById('field_pao2');
+        this.fieldPaco2 = document.getElementById('field_paco2');
+        this.fieldSao2 = document.getElementById('field_sao2');
+        
+        // 氧合评估字段
+        this.fieldOxygenFlow = document.getElementById('field_oxygen_flow');
+        this.fieldOxygenConcentration = document.getElementById('field_oxygen_concentration');
+        this.fieldPao2 = document.getElementById('field_pao2');
+        this.fieldOxygenIndex = document.getElementById('field_oxygen_index');
+        
+        // 病原体检测字段（多选）
+        this.checkboxPathogens = document.querySelectorAll('input[name="pathogen"]');
+        
+        // 体格检查字段
+        this.fieldPhysicalExam = document.getElementById('field_physical_exam');
+        
+        // 第五部分：中医问诊字段
+        this.fieldTcmTotal = document.getElementById('field_tcm_total');
+        this.tcmSelects = [];
     }
 
     bindEvents() {
@@ -54,9 +265,256 @@ class ImageAnalyzerApp {
         this.settingsBtn.addEventListener('click', () => this.showSettings());
         this.closeSettings.addEventListener('click', () => this.hideSettings());
         this.saveApiKeyBtn.addEventListener('click', () => this.saveApiKey());
-        this.downloadBtn.addEventListener('click', () => this.downloadExcel());
+        this.downloadBtn.addEventListener('click', () => this.showDateSelectModal());
+        
+        // BMI 自动计算
+        this.fieldHeight.addEventListener('input', () => this.calculateBMI());
+        this.fieldWeight.addEventListener('input', () => this.calculateBMI());
+        
+        // GERDQ 自动计算（复选框模式）
+        for (let q = 1; q <= 6; q++) {
+            for (let d = 0; d <= 3; d++) {
+                const checkbox = document.querySelector(`input[name="gerdq_${q}_${d}"]`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', () => {
+                        this.handleGerdqCheckboxChange(q);
+                        this.calculateGerdq();
+                    });
+                }
+            }
+        }
+        
+        // 氧合评估自动计算
+        this.fieldOxygenFlow.addEventListener('input', () => this.calculateOxygenConcentration());
+        this.fieldPao2.addEventListener('input', () => this.calculateOxygenIndex());
+        
+        // 环境接触史互斥逻辑（选择"无"时禁用其他选项）
+        this.checkboxEnvironments.forEach(cb => {
+            cb.addEventListener('change', () => this.handleMutexCheckboxes(this.checkboxEnvironments, '无'));
+        });
+        
+        // 饮食习惯互斥逻辑（选择"无"时禁用其他选项）
+        this.checkboxDiets.forEach(cb => {
+            cb.addEventListener('change', () => this.handleMutexCheckboxes(this.checkboxDiets, '无'));
+        });
+        
+        // 日期选择弹窗事件
+        this.downloadBtn.addEventListener('click', () => this.showDateSelectModal());
+        this.closeDateSelect.addEventListener('click', () => this.hideDateSelectModal());
+        this.confirmExport.addEventListener('click', () => this.exportBySelectedDate());
     }
+    
+    showDateSelectModal() {
+        this.loadTodayRecords().then(() => {
+            this.showDateSelectDialog();
+        });
+    }
+    
+    showDateSelectDialog() {
+        this.getAllRecords().then(allRecords => {
+            if (allRecords.length === 0) {
+                this.showToast('暂无数据', 'error');
+                return;
+            }
+            
+            // 提取所有唯一日期
+            const dates = [...new Set(allRecords.map(r => r.date))].sort().reverse();
+            
+            // 填充下拉框
+            this.dateSelect.innerHTML = '<option value="">请选择日期</option>';
+            dates.forEach(date => {
+                const count = allRecords.filter(r => r.date === date).length;
+                const option = document.createElement('option');
+                option.value = date;
+                option.textContent = `${date} (${count}条)`;
+                this.dateSelect.appendChild(option);
+            });
+            
+            this.dateSelectModal.hidden = false;
+        });
+    }
+    
+    hideDateSelectModal() {
+        this.dateSelectModal.hidden = true;
+    }
+    
+    async exportBySelectedDate() {
+        const selectedDate = this.dateSelect.value;
+        if (!selectedDate) {
+            this.showToast('请选择日期', 'error');
+            return;
+        }
+        
+        this.hideDateSelectModal();
+        
+        const allRecords = await this.getAllRecords();
+        const filteredRecords = allRecords.filter(r => r.date === selectedDate);
+        
+        this.showToast(`正在导出 ${selectedDate} 的 ${filteredRecords.length} 条数据...`, 'success');
+        
+        const data = filteredRecords.map(r => ({
+            '分组': r.group || '',
+            'ID号': r.id || '',
+            '姓名': r.name || '',
+            '性别': r.gender || '',
+            '民族': r.ethnicity || '',
+            '身高(M)': r.height || '',
+            '体重(KG)': r.weight || '',
+            'BMI': r.bmi || '',
+            '职业': r.occupation || '',
+            '婚姻': r.marriage || '',
+            '西医诊断': r.diagnosis_wm || '',
+            '中医诊断': r.diagnosis_tcm || '',
+            '既往病史用药史': r.medical_history || '',
+            '烟酒史': r.smoking_drinking || '',
+            '过敏史': r.allergy || '',
+            '手术史': r.surgery || '',
+            '环境接触史': r.environment || '',
+            '饮食习惯': r.diet || '',
+            '幽门螺旋杆菌': r.hp || '',
+            '病程(年)': r.duration || '',
+            '当前用药': r.medications || '',
+            
+            // GERDQ评分 (6 questions × 4 day ranges = 24 fields)
+            ...(() => {
+                const gerdqData = {};
+                const dayRanges = ['0天', '1天', '2-3天', '4-7天'];
+                const gerdqQuestions = [
+                    '醒来时烧心', '睡眠中醒来', '醒来时反流', '进食后烧心',
+                    '进食后反流', '上腹痛'
+                ];
+                for (let q = 1; q <= 6; q++) {
+                    for (let d = 0; d <= 3; d++) {
+                        const key = `GERDQ_${gerdqQuestions[q-1]}_${dayRanges[d]}`;
+                        gerdqData[key] = r[key] || '';
+                    }
+                }
+                gerdqData['GERDQ_总分'] = r.gerdq_total || '';
+                return gerdqData;
+            })(),
+            
+            // mMRC评分
+            'mMRC分级': r.mmrc || '',
+            
+            // 第四部分：检查报告
+            'CT报告': r.ct_report || '',
+            '肺纤维化位置': r.fibrosis_location || '',
+            '胃镜报告': r.gastroscopy || '',
+            '活检报告': r.biopsy || '',
+            '肺功能报告': r.lung_function || '',
+            
+            // 营养指标
+            '总蛋白(g/L)': r.total_protein || '',
+            '白蛋白(g/L)': r.albumin || '',
+            '前白蛋白(mg/L)': r.prealbumin || '',
+            '红细胞计数(×10¹²/L)': r.rbc || '',
+            '血红蛋白(g/L)': r.hemoglobin || '',
+            
+            // 血气分析
+            '氧分压PaO₂(mmHg)': r.pao2 || '',
+            '二氧化碳分压PaCO₂(mmHg)': r.paco2 || '',
+            '血氧饱和度SaO₂(%)': r.sao2 || '',
+            
+            // 氧合评估
+            '氧流量(L/min)': r.oxygen_flow || '',
+            '吸氧浓度(%)': r.oxygen_concentration || '',
+            '氧合指数': r.oxygen_index || '',
+            
+            // 病原体检测
+            '呼吸道病原体': r.pathogen || '',
+            
+            // 体格检查
+            '体格检查异常结果': r.physical_exam || '',
+            
+            // 第五部分：中医问诊
+            '中医问诊总分': r.tcm_total || '',
+            ...this.getTCMExcelColumns(r),
+            
+            '日期': r.date,
+            '记录时间': r.createdAt
+        }));
 
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Records');
+        
+        const date = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(wb, `医疗信息录入_${date}.xlsx`);
+        
+        this.showToast('下载成功', 'success');
+    }
+    
+    calculateBMI() {
+        const height = parseFloat(this.fieldHeight.value);
+        const weight = parseFloat(this.fieldWeight.value);
+        
+        if (height > 0 && weight > 0) {
+            const bmi = weight / (height * height);
+            this.fieldBmi.value = bmi.toFixed(2);
+        } else {
+            this.fieldBmi.value = '';
+        }
+    }
+    
+    calculateGerdq() {
+        let total = 0;
+        for (let q = 1; q <= 6; q++) {
+            for (let d = 0; d <= 3; d++) {
+                const checkbox = document.querySelector(`input[name="gerdq_${q}_${d}"]`);
+                if (checkbox && checkbox.checked) {
+                    total += parseInt(checkbox.value) || 0;
+                }
+            }
+        }
+        this.fieldGerdqTotal.value = total;
+    }
+    
+    handleGerdqCheckboxChange(row) {
+        for (let d = 0; d <= 3; d++) {
+            const checkbox = document.querySelector(`input[name="gerdq_${row}_${d}"]`);
+            if (checkbox) {
+                checkbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        for (let od = 0; od <= 3; od++) {
+                            if (od !== d) {
+                                const otherCheckbox = document.querySelector(`input[name="gerdq_${row}_${od}"]`);
+                                if (otherCheckbox) {
+                                    otherCheckbox.checked = false;
+                                }
+                            }
+                        }
+                    }
+                    this.calculateGerdq();
+                });
+            }
+        }
+    }
+    
+    calculateOxygenConcentration() {
+        const oxygenFlow = parseFloat(this.fieldOxygenFlow.value);
+        
+        if (oxygenFlow > 0) {
+            const concentration = 21 + 4 * oxygenFlow;
+            this.fieldOxygenConcentration.value = concentration.toFixed(0);
+        } else {
+            this.fieldOxygenConcentration.value = '';
+        }
+        
+        this.calculateOxygenIndex();
+    }
+    
+    calculateOxygenIndex() {
+        const pao2 = parseFloat(this.fieldPao2.value);
+        const fio2 = parseFloat(this.fieldOxygenConcentration.value);
+        
+        if (pao2 > 0 && fio2 > 0) {
+            const oxygenIndex = pao2 / (fio2 / 100);
+            this.fieldOxygenIndex.value = oxygenIndex.toFixed(1);
+        } else {
+            this.fieldOxygenIndex.value = '';
+        }
+    }
+    
     async initDB() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(this.dbName, 1);
@@ -77,7 +535,7 @@ class ImageAnalyzerApp {
             };
         });
     }
-
+    
     async loadApiKey() {
         const savedKey = localStorage.getItem('zhipu_api_key');
         if (savedKey) {
@@ -86,7 +544,7 @@ class ImageAnalyzerApp {
             this.showSettings();
         }
     }
-
+    
     async saveApiKey() {
         const key = this.apiKeyInput.value.trim();
         if (!key) {
@@ -99,25 +557,25 @@ class ImageAnalyzerApp {
         this.hideSettings();
         this.showToast('已保存', 'success');
     }
-
+    
     showSettings() {
         this.apiKeyInput.value = this.apiKey;
         this.settingsModal.hidden = false;
     }
-
+    
     hideSettings() {
         this.settingsModal.hidden = true;
     }
-
+    
     handleFileSelect(event) {
         const file = event.target.files[0];
         if (!file) return;
-
+        
         if (!file.type.startsWith('image/')) {
             this.showToast('请选择图片文件', 'error');
             return;
         }
-
+        
         const reader = new FileReader();
         reader.onload = (e) => {
             this.currentImageBase64 = e.target.result;
@@ -127,14 +585,14 @@ class ImageAnalyzerApp {
         };
         reader.readAsDataURL(file);
     }
-
+    
     showPreview() {
         this.uploadSection.hidden = true;
         this.previewSection.hidden = false;
         this.formSection.hidden = true;
         this.successSection.hidden = true;
     }
-
+    
     resetToUpload() {
         this.uploadSection.hidden = false;
         this.previewSection.hidden = true;
@@ -145,124 +603,206 @@ class ImageAnalyzerApp {
         this.currentImageBase64 = '';
         this.clearForm();
     }
-
+    
     clearForm() {
+        this.fieldGroup.value = '';
+        this.fieldId.value = '';
         this.fieldName.value = '';
+        this.fieldGender.value = '';
+        this.fieldEthnicity.value = '';
         this.fieldHeight.value = '';
         this.fieldWeight.value = '';
-    }
-
-    async analyzeImage() {
-        this.previewSection.hidden = true;
-        this.loadingSection.hidden = false;
-        this.formSection.hidden = true;
-        this.successSection.hidden = true;
-
-        try {
-            const data = await this.callGLMAPI();
-            this.fillForm(data);
-            
-            this.loadingSection.hidden = true;
-            this.formSection.hidden = false;
-        } catch (error) {
-            console.error('分析失败:', error);
-            this.showToast(error.message || '分析失败，请重试', 'error');
-            this.loadingSection.hidden = true;
-            this.previewSection.hidden = false;
-        }
-    }
-
-    async callGLMAPI() {
-        if (!this.apiKey) {
-            this.showSettings();
-            throw new Error('请先配置 API Key');
-        }
-
-        const base64Data = this.currentImageBase64.split(',')[1];
-        
-        const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'glm-4.5v',
-                messages: [{
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'image_url',
-                            image_url: { url: base64Data }
-                        },
-                        {
-                            type: 'text',
-                            text: `请分析这张图片，提取以下信息：
-1. 姓名（如有）
-2. 身高（cm，只写数字）
-3. 体重（kg，只写数字）
-
-请用 JSON 格式输出：
-{
-  "name": "姓名或空字符串",
-  "height": "身高数字或空字符串", 
-  "weight": "体重数字或空字符串"
-}
-
-如果某个信息不存在或无法识别，设置为空字符串。只输出 JSON，不要其他文字。`
-                        }
-                    ]
-                }],
-                thinking: { type: 'enabled' }
-            })
+        this.fieldBmi.value = '';
+        this.fieldOccupation.value = '';
+        this.fieldMarriage.value = '';
+        this.fieldDiagnosisWm.value = '';
+        this.fieldDiagnosisTcm.value = '';
+        this.fieldMedicalHistory.value = '';
+        this.fieldSmokingDrinking.value = '';
+        this.fieldAllergy.value = '';
+        this.fieldSurgery.value = '';
+        // 环境接触史（多选）
+        this.checkboxEnvironments.forEach(cb => {
+            cb.checked = false;
+            cb.disabled = false;
         });
-
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.error?.message || 'API 调用失败');
-        }
-
-        const data = await response.json();
-        return this.parseResponse(data.choices[0].message.content);
-    }
-
-    parseResponse(response) {
-        let jsonStr = response.trim();
+        // 饮食习惯（多选）
+        this.checkboxDiets.forEach(cb => {
+            cb.checked = false;
+            cb.disabled = false;
+        });
+        // 幽门螺旋杆菌
+        this.fieldHp.value = '';
+        this.fieldDuration.value = '';
+        this.fieldMedications.value = '';
         
-        const jsonMatch = jsonStr.match(/```json\s*([\s\S]*?)\s*```/);
-        if (jsonMatch) {
-            jsonStr = jsonMatch[1];
+        // GERDQ fields (6 questions × 4 day ranges = 24 fields) - 复选框模式
+        for (let q = 1; q <= 6; q++) {
+            for (let d = 0; d <= 3; d++) {
+                const checkbox = document.querySelector(`input[name="gerdq_${q}_${d}"]`);
+                if (checkbox) checkbox.checked = false;
+            }
         }
-
-        try {
-            return JSON.parse(jsonStr);
-        } catch (e) {
-            console.warn('JSON 解析失败:', jsonStr);
-            return { name: '', height: '', weight: '' };
+        this.fieldGerdqTotal.value = '';
+        
+        // mMRC field
+        this.fieldMmrc.value = '';
+        
+        // 第四部分：检查报告字段
+        this.fieldCtReport.value = '';
+        this.fieldFibrosisLocation.value = '';
+        this.fieldGastroscopy.value = '';
+        this.fieldBiopsy.value = '';
+        this.fieldLungFunction.value = '';
+        
+        // 营养指标字段
+        this.fieldTotalProtein.value = '';
+        this.fieldAlbumin.value = '';
+        this.fieldPrealbumin.value = '';
+        this.fieldRbc.value = '';
+        this.fieldHemoglobin.value = '';
+        
+        // 血气分析字段
+        this.fieldBloodGas.value = '';
+        
+        // 氧合评估字段
+        this.fieldOxygenFlow.value = '';
+        this.fieldOxygenConcentration.value = '';
+        this.fieldPao2.value = '';
+        this.fieldOxygenIndex.value = '';
+        
+        // 病原体检测字段（多选）
+        if (this.checkboxPathogens) {
+            this.checkboxPathogens.forEach(cb => cb.checked = false);
+        }
+        
+        // 体格检查字段
+        this.fieldPhysicalExam.value = '';
+        
+        // 第五部分：中医问诊字段
+        this.fieldTcmTotal.value = '';
+        
+        // 重置所有TCM下拉框
+        if (this.tcmFields) {
+            Object.values(this.tcmFields).forEach(select => {
+                select.value = '0';
+            });
+        }
+        
+        // 重置分类分数显示
+        const tcmData = this.getTCMData();
+        for (const category of Object.keys(tcmData)) {
+            const categoryNum = category.split('、')[0];
+            const scoreEl = document.getElementById(`score_${categoryNum}`);
+            if (scoreEl) {
+                scoreEl.textContent = '0分';
+            }
         }
     }
-
-    fillForm(data) {
-        this.fieldName.value = data.name || '';
-        this.fieldHeight.value = data.height || '';
-        this.fieldWeight.value = data.weight || '';
-    }
-
+    
     async saveRecord() {
+        this.calculateBMI();
+        this.calculateGerdq();
+        this.calculateOxygenConcentration();
+        this.calculateOxygenIndex();
+        this.calculateTCMTotal();
+        
         const record = {
+            group: this.fieldGroup.value,
+            id: this.fieldId.value.trim(),
             name: this.fieldName.value.trim(),
+            gender: this.fieldGender.value,
+            ethnicity: this.fieldEthnicity.value.trim(),
             height: this.fieldHeight.value.trim(),
             weight: this.fieldWeight.value.trim(),
+            bmi: this.fieldBmi.value,
+            occupation: this.fieldOccupation.value.trim(),
+            marriage: this.fieldMarriage.value,
+            diagnosis_wm: this.fieldDiagnosisWm.value.trim(),
+            diagnosis_tcm: this.fieldDiagnosisTcm.value.trim(),
+            medical_history: this.fieldMedicalHistory.value.trim(),
+            smoking_drinking: this.fieldSmokingDrinking.value.trim(),
+            allergy: this.fieldAllergy.value.trim(),
+            surgery: this.fieldSurgery.value.trim(),
+            environment: Array.from(this.checkboxEnvironments)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value)
+                .join(';'),
+            diet: Array.from(this.checkboxDiets)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value)
+                .join(';'),
+            hp: this.fieldHp.value,
+            duration: this.fieldDuration.value.trim(),
+            medications: this.fieldMedications.value.trim(),
+            
+            // GERDQ评分 (6 questions × 4 day ranges = 24 fields) - 复选框模式
+            ...(() => {
+                const gerdqData = {};
+                const dayRanges = ['0天', '1天', '2-3天', '4-7天'];
+                const gerdqQuestions = [
+                    '醒来时烧心', '睡眠中醒来', '醒来时反流', '进食后烧心',
+                    '进食后反流', '上腹痛'
+                ];
+                for (let q = 1; q <= 6; q++) {
+                    for (let d = 0; d <= 3; d++) {
+                        const key = `gerdq_${q}_${d}`;
+                        const checkbox = document.querySelector(`input[name="${key}"]`);
+                        const value = (checkbox && checkbox.checked) ? checkbox.value : '';
+                        gerdqData[key] = value;
+                        gerdqData[`GERDQ_${gerdqQuestions[q-1]}_${dayRanges[d]}`] = value;
+                    }
+                }
+                gerdqData.gerdq_total = this.fieldGerdqTotal.value;
+                return gerdqData;
+            })(),
+            
+            // mMRC评分
+            mmrc: this.fieldMmrc.value,
+            
+            // 第四部分：检查报告
+            ct_report: this.fieldCtReport.value.trim(),
+            fibrosis_location: this.fieldFibrosisLocation.value.trim(),
+            gastroscopy: this.fieldGastroscopy.value.trim(),
+            biopsy: this.fieldBiopsy.value.trim(),
+            lung_function: this.fieldLungFunction.value.trim(),
+            
+            // 营养指标
+            total_protein: this.fieldTotalProtein.value.trim(),
+            albumin: this.fieldAlbumin.value.trim(),
+            prealbumin: this.fieldPrealbumin.value.trim(),
+            rbc: this.fieldRbc.value.trim(),
+            hemoglobin: this.fieldHemoglobin.value.trim(),
+            
+            // 血气分析
+            pao2: this.fieldPao2.value.trim(),
+            paco2: this.fieldPaco2.value.trim(),
+            sao2: this.fieldSao2.value.trim(),
+            oxygen_index: this.fieldOxygenIndex.value.trim(),
+            
+            // 病原体检测（多选）
+            pathogen: Array.from(this.checkboxPathogens)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value)
+                .join(';'),
+            
+            // 体格检查
+            physical_exam: this.fieldPhysicalExam.value.trim(),
+            
+            // 第五部分：中医问诊
+            tcm_total: this.fieldTcmTotal.value,
+            ...this.collectTCMData(),
+            
+            // 日期信息
             date: new Date().toISOString().split('T')[0],
-            createdAt: new Date().toISOString(),
-            image: this.currentImageBase64.substring(0, 100) + '...' // 只存缩略
+            createdAt: new Date().toISOString()
         };
-
+        
         try {
             await this.addRecord(record);
             this.formSection.hidden = true;
             this.successSection.hidden = false;
-            document.getElementById('successMsg').textContent = '今日已保存 ' + record.name + ' 的信息';
+            document.getElementById('successMsg').textContent = '已保存: ' + (record.name || record.id || '新记录');
             this.loadTodayRecords();
             this.showToast('保存成功', 'success');
         } catch (error) {
@@ -270,7 +810,7 @@ class ImageAnalyzerApp {
             this.showToast('保存失败，请重试', 'error');
         }
     }
-
+    
     async addRecord(record) {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([this.storeName], 'readwrite');
@@ -281,18 +821,18 @@ class ImageAnalyzerApp {
             request.onerror = () => reject(request.error);
         });
     }
-
+    
     async loadTodayRecords() {
         const today = new Date().toISOString().split('T')[0];
         
         const allRecords = await this.getAllRecords();
         const todayRecords = allRecords.filter(r => r.date === today);
         const sortedRecords = todayRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
+        
         this.totalCount.textContent = allRecords.length;
         this.renderRecords(sortedRecords);
     }
-
+    
     async getAllRecords() {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([this.storeName], 'readonly');
@@ -303,61 +843,46 @@ class ImageAnalyzerApp {
             request.onerror = () => reject(request.error);
         });
     }
-
+    
     renderRecords(records) {
         if (records.length === 0) {
             this.recordsList.innerHTML = '<p class="empty-tip">暂无记录</p>';
             return;
         }
-
+        
         this.recordsList.innerHTML = records.map(record => `
             <div class="record-item">
                 <div class="record-info">
-                    <div class="record-name">${record.name || '未填写姓名'}</div>
-                    <div class="record-detail">身高: ${record.height || '-'}cm | 体重: ${record.weight || '-'}kg</div>
+                    <div class="record-name">${record.name || record.id || '未识别'}</div>
+                    <div class="record-detail">${record.group || ''} | ${record.gender || ''} | BMI: ${record.bmi || '-'} | GERDQ: ${record.gerdq_total || '-'} | mMRC: ${record.mmrc || '-'}</div>
                 </div>
                 <div class="record-time">${this.formatTime(record.createdAt)}</div>
             </div>
         `).join('');
     }
-
+    
     formatTime(isoString) {
         const date = new Date(isoString);
         return date.getHours().toString().padStart(2, '0') + ':' + 
                date.getMinutes().toString().padStart(2, '0');
     }
-
-    async downloadExcel() {
-        try {
-            const allRecords = await this.getAllRecords();
-            
-            if (allRecords.length === 0) {
-                this.showToast('暂无数据', 'error');
-                return;
-            }
-
-            const data = allRecords.map(r => ({
-                '姓名': r.name || '',
-                '身高(cm)': r.height || '',
-                '体重(kg)': r.weight || '',
-                '日期': r.date,
-                '记录时间': r.createdAt
-            }));
-
-            const ws = XLSX.utils.json_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Records');
-            
-            const date = new Date().toISOString().split('T')[0];
-            XLSX.writeFile(wb, `身高体重记录_${date}.xlsx`);
-            
-            this.showToast('下载成功', 'success');
-        } catch (error) {
-            console.error('下载失败:', error);
-            this.showToast('下载失败，请重试', 'error');
+    
+    getTCMExcelColumns(record) {
+        const data = {};
+        const tcmData = this.getTCMData();
+        
+        for (const [category, items] of Object.entries(tcmData)) {
+            const categoryNum = category.split('、')[0];
+            items.forEach(item => {
+                const fieldName = `tcm_${categoryNum}_${item}`;
+                const value = record[fieldName] || '';
+                data[`TCM_${categoryNum}_${item}`] = value;
+            });
         }
+        
+        return data;
     }
-
+    
     showToast(message, type = '') {
         this.toast.textContent = message;
         this.toast.className = 'toast show ' + type;
@@ -365,6 +890,22 @@ class ImageAnalyzerApp {
         setTimeout(() => {
             this.toast.className = 'toast';
         }, 3000);
+    }
+    
+    handleMutexCheckboxes(checkboxes, exclusiveValue) {
+        const exclusiveCb = Array.from(checkboxes).find(cb => cb.value === exclusiveValue);
+        const otherCbs = Array.from(checkboxes).filter(cb => cb.value !== exclusiveValue);
+        
+        if (exclusiveCb.checked) {
+            otherCbs.forEach(cb => {
+                cb.checked = false;
+                cb.disabled = true;
+            });
+        } else {
+            otherCbs.forEach(cb => {
+                cb.disabled = false;
+            });
+        }
     }
 }
 

@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>医疗信息录入 - 表单预览</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 16px; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f3f4f6;
+            color: #1f2937;
+            line-height: 1.6;
+            padding: 1rem;
+            padding-bottom: 120px;
+        }
+        .preview-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .header h1 { font-size: 1.25rem; margin-bottom: 0.5rem; color: #111827; }
+        .subtitle { color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem; }
+        .section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px dashed #e5e7eb;
+        }
+        .section:last-child { border-bottom: none; margin-bottom: 0; }
+        .section-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 1rem;
+            padding-left: 0.5rem;
+            border-left: 3px solid #6366f1;
+        }
+        .field-row { display: flex; gap: 0.75rem; margin-bottom: 0.75rem; }
+        .field-row .field { flex: 1; }
+        .field { margin-bottom: 0.75rem; }
+        .field label {
+            display: flex;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #4b5563;
+            margin-bottom: 0.25rem;
+        }
+        .tag {
+            display: inline-block;
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            font-size: 0.55rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 0.25rem;
+        }
+        .tag-blue { background: #dbeafe; color: #1d4ed8; }
+        .tag-orange { background: #ffedd5; color: #c2410c; }
+        .tag-green { background: #dcfce7; color: #15803d; }
+        .preview-input, .preview-select, .preview-textarea {
+            width: 100%;
+            padding: 0.625rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            background: white;
+            color: #374151;
+        }
+        .preview-input:focus, .preview-select:focus, .preview-textarea:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+        }
+        .preview-textarea { min-height: 50px; resize: none; }
+        .hint { font-size: 0.7rem; color: #9ca3af; margin-top: 0.25rem; }
+        
+        /* GERDQ Section */
+        .gerdq-item {
+            background: #f9fafb;
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+        .gerdq-item label { font-size: 0.8rem; margin-bottom: 0.5rem; }
+        .gerdq-select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            background: white;
+        }
+        .score-box {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 1rem;
+        }
+        .score-box label { color: white; font-weight: 500; }
+        .score-box input {
+            font-size: 1.75rem;
+            font-weight: bold;
+            text-align: center;
+            background: white;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 6px;
+            margin-top: 0.5rem;
+            width: 80px;
+        }
+        .score-box input:focus { outline: none; }
+        
+        /* TCM Section */
+        .tcm-section { margin-top: 1rem; }
+        .tcm-category {
+            margin-bottom: 0.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .tcm-category summary {
+            padding: 0.625rem 0.75rem;
+            background: #ecfdf5;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #15803d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .tcm-category summary::-webkit-details-marker { display: none; }
+        .tcm-category summary::after {
+            content: '▼';
+            font-size: 0.65rem;
+            transition: transform 0.2s;
+        }
+        .tcm-category[open] summary::after { transform: rotate(180deg); }
+        .tcm-items {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: #f9fafb;
+        }
+        .tcm-item { display: flex; flex-direction: column; gap: 0.25rem; }
+        .tcm-item label {
+            font-size: 0.7rem !important;
+            color: #4b5563 !important;
+            line-height: 1.3;
+        }
+        .tcm-item select {
+            font-size: 0.75rem !important;
+            padding: 0.375rem !important;
+        }
+        .tcm-score-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: #6366f1;
+            font-weight: 600;
+        }
+        
+        .total-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+        }
+        .total-item { text-align: center; }
+        .total-num { font-size: 1.25rem; font-weight: bold; color: #6366f1; }
+        .total-label { font-size: 0.7rem; color: #6b7280; }
+        
+        .btn-save {
+            width: 100%;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        
+        /* Stats bar */
+        .stats-bar {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+        .stats-bar span { font-size: 1.25rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <div class="header">
+            <h1>🏥 医疗信息录入</h1>
+            <p class="subtitle">表单预览 - 完整展示所有字段</p>
+        </div>
+        
+        <div class="stats-bar">
+            <span id="totalCount">0</span> 条记录（预览模式下不计数）
+        </div>
+
+        <!-- 第一部分：基本信息 -->
+        <div class="section">
+            <h2 class="section-title">第一部分：基本信息（19字段）</h2>
+            
+            <div class="field-row">
+                <div class="field">
+                    <label>分组 <span class="tag tag-orange">手动</span></label>
+                    <select class="preview-select">
+                        <option value="">请选择</option>
+                        <option>GERD合并PF组</option>
+                        <option>PF组</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>ID号 <span class="tag tag-blue">识别</span></label>
+                    <input type="text" class="preview-input" placeholder="10位数，000开头" maxlength="10">
+                </div>
+            </div>
+            
+            <div class="field-row">
+                <div class="field">
+                    <label>姓名 <span class="tag tag-blue">识别</span></label>
+                    <input type="text" class="preview-input" placeholder="请输入">
+                </div>
+                <div class="field">
+                    <label>性别 <span class="tag tag-blue">识别</span></label>
+                    <select class="preview-select">
+                        <option value="">请选择</option>
+                        <option>男</option>
+                        <option>女</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="field">
+                <label>民族 <span class="tag tag-blue">识别</span></label>
+                <input type="text" class="preview-input" placeholder="请输入">
+            </div>
+            
+            <div class="field-row">
+                <div class="field">
+                    <label>身高(M) <span class="tag tag-orange">手动</span></label>
+                    <input type="number" class="preview-input" placeholder="米" step="0.01">
+                </div>
+                <div class="field">
+                    <label>体重(KG) <span class="tag tag-orange">手动</span></label>
+                    <input type="number" class="preview-input" placeholder="公斤" step="0.1">
+                </div>
+                <div class="field">
+                    <label>BMI <span class="tag tag-green">自动</span></label>
+                    <input type="text" class="preview-input" readonly placeholder="自动计算">
+                </div>
+            </div>
+            
+            <div class="field">
+                <label>职业 <span class="tag tag-blue">识别</span></label>
+                <input type="text" class="preview-input" placeholder="请输入">
+            </div>
+            
+            <div class="field">
+                <label>婚姻 <span class="tag tag-blue">识别</span></label>
+                <select class="preview-select">
+                    <option value="">请选择</option>
+                    <option>已婚</option>
+                    <option>未婚</option>
+                    <option>离异</option>
+                    <option>丧偶</option>
+                </select>
+            </div>
+            
+            <div class="field">
+                <label>西医诊断 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" placeholder="请输入西医诊断"></textarea>
+            </div>
+            
+            <div class="field">
+                <label>中医诊断 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" placeholder="请输入中医诊断"></textarea>
+            </div>
+            
+            <div class="field">
+                <label>既往病史用药史 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" placeholder="有或无，有则填入病史及用药情况"></textarea>
+            </div>
+            
+            <div class="field">
+                <label>烟酒史 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" placeholder="吸烟史：有或无，？支/日，？年，是否戒烟；饮酒史：有或无..."></textarea>
+            </div>
+            
+            <div class="field">
+                <label>过敏史 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" placeholder="有或无，有则填入药物及过敏反应"></textarea>
+            </div>
+            
+            <div class="field">
+                <label>手术史 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" placeholder="有或无，有则填入手术情况"></textarea>
+            </div>
+            
+            <div class="field">
+                <label>环境接触史 <span class="tag tag-orange">手动多选</span></label>
+                <div style="display:flex;flex-wrap:wrap;gap:0.75rem;padding:0.5rem 0;">
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="environment" value="粉尘"> 粉尘</label>
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="environment" value="有害气体"> 有害气体</label>
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="environment" value="宠物或家禽喂养史"> 宠物或家禽喂养史</label>
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="environment" value="无"> 无</label>
+                </div>
+            </div>
+            
+            <div class="field">
+                <label>饮食习惯 <span class="tag tag-orange">手动多选</span></label>
+                <div style="display:flex;flex-wrap:wrap;gap:0.75rem;padding:0.5rem 0;">
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="diet" value="咖啡"> 咖啡</label>
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="diet" value="茶"> 茶</label>
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="diet" value="辛辣"> 辛辣</label>
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="diet" value="油腻"> 油腻</label>
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="diet" value="无"> 无</label>
+                </div>
+            </div>
+            </div>
+            
+            <div class="field">
+                <label>幽门螺旋杆菌 <span class="tag tag-orange">手动</span></label>
+                <select class="preview-select">
+                    <option value="">请选择</option>
+                    <option>阳性</option>
+                    <option>阴性</option>
+                </select>
+            </div>
+            
+            <div class="field-row">
+                <div class="field">
+                    <label>病程几年 <span class="tag tag-orange">手动</span></label>
+                    <input type="number" class="preview-input" placeholder="请输入">
+                </div>
+            </div>
+            
+            <div class="field">
+                <label>当前病程中使用的药物 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" placeholder="有或无，有则录入药物名称"></textarea>
+            </div>
+        </div>
+
+        <!-- 第二部分：GERDQ评分 -->
+        <div class="section">
+            <h2 class="section-title">第二部分：GERDQ评分量表（6×4=24字段）</h2>
+            <p class="hint" style="margin-bottom:1rem;">请勾选每个症状最近一周出现的天数，勾选后自动填入对应分值</p>
+            
+            <style>
+                .gerdq-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+                .gerdq-table th { background: #f3f4f6; padding: 0.5rem; text-align: center; border: 1px solid #e5e7eb; }
+                .gerdq-table td { border: 1px solid #e5e7eb; padding: 0.25rem; text-align: center; }
+                .gerdq-table td:first-child { background: #f9fafb; text-align: left; font-weight: 500; min-width: 120px; }
+                .gerdq-cell { width: 50px; }
+                .gerdq-cell label { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 2px; }
+                .gerdq-cell input[type="checkbox"] { width: 18px; height: 18px; margin-bottom: 2px; }
+                .gerdq-cell .cell-value { font-size: 0.65rem; color: #6b7280; }
+                .gerdq-cell input[type="checkbox"]:checked + .cell-value { color: #2563eb; font-weight: 600; }
+            </style>
+            
+            <table class="gerdq-table">
+                <thead>
+                    <tr>
+                        <th style="width:35%;">症状</th>
+                        <th class="gerdq-cell">0天</th>
+                        <th class="gerdq-cell">1天</th>
+                        <th class="gerdq-cell">2-3天</th>
+                        <th class="gerdq-cell">4-7天</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1. 醒来时感到烧心</td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_1_0" value="0"><span class="cell-value">0</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_1_1" value="1"><span class="cell-value">1</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_1_2" value="2"><span class="cell-value">2</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_1_3" value="3"><span class="cell-value">3</span></label></td>
+                    </tr>
+                    <tr>
+                        <td>2. 睡眠中因烧心或反流而醒来</td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_2_0" value="0"><span class="cell-value">0</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_2_1" value="1"><span class="cell-value">1</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_2_2" value="2"><span class="cell-value">2</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_2_3" value="3"><span class="cell-value">3</span></label></td>
+                    </tr>
+                    <tr>
+                        <td>3. 除烧心外，醒来时感到胃内容物上涌</td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_3_0" value="3"><span class="cell-value">3</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_3_1" value="2"><span class="cell-value">2</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_3_2" value="1"><span class="cell-value">1</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_3_3" value="0"><span class="cell-value">0</span></label></td>
+                    </tr>
+                    <tr>
+                        <td>4. 进食后感到烧心</td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_4_0" value="1"><span class="cell-value">1</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_4_1" value="2"><span class="cell-value">2</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_4_2" value="3"><span class="cell-value">3</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_4_3" value="0"><span class="cell-value">0</span></label></td>
+                    </tr>
+                    <tr>
+                        <td>5. 进食后感到胃内容物上涌</td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_5_0" value="1"><span class="cell-value">1</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_5_1" value="2"><span class="cell-value">2</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_5_2" value="3"><span class="cell-value">3</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_5_3" value="0"><span class="cell-value">0</span></label></td>
+                    </tr>
+                    <tr>
+                        <td>6. 感到上腹部疼痛</td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_6_0" value="0"><span class="cell-value">0</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_6_1" value="1"><span class="cell-value">1</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_6_2" value="2"><span class="cell-value">2</span></label></td>
+                        <td class="gerdq-cell"><label><input type="checkbox" name="gerdq_6_3" value="3"><span class="cell-value">3</span></label></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="score-box">
+                <label>GERDQ总分 <span class="tag" style="background:white;color:#059669;">自动计算</span></label>
+                <input type="text" id="gerdq_total" readonly value="0" placeholder="0">
+                <p class="hint" style="color:rgba(255,255,255,0.9);margin-top:0.5rem;">正常：0-2分，GERD可能：≥8分</p>
+            </div>
+        </div>
+
+        <!-- 第三部分：mMRC -->
+        <div class="section">
+            <h2 class="section-title">第三部分：mMRC呼吸困难评分（1字段）</h2>
+            
+            <div class="field">
+                <label>mMRC分级 <span class="tag tag-orange">手动选择</span></label>
+                <select class="preview-select">
+                    <option value="">请选择</option>
+                    <option>0级 - 无呼吸困难</option>
+                    <option>1级 - 在平地快速行走或爬坡时出现气短</option>
+                    <option>2级 - 因气短而比同龄人行走缓慢，或行走数分钟后需停下休息</option>
+                    <option>3级 - 行走100米或数分钟后需停下休息</option>
+                    <option>4级 - 因呼吸困难而不能离开家门，或穿衣/脱衣时出现气短</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 第四部分：检查报告 -->
+        <div class="section">
+            <h2 class="section-title">第四部分：检查报告（25+字段）</h2>
+            
+            <div class="field">
+                <label>CT报告 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" placeholder="请输入CT报告内容"></textarea>
+            </div>
+            
+            <div class="field">
+                <label>肺纤维化的位置 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" placeholder="请描述肺纤维化位置"></textarea>
+            </div>
+            
+            <div class="field">
+                <label>胃镜报告 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" placeholder="有或无，有则填入报告内容"></textarea>
+            </div>
+            
+            <div class="field">
+                <label>活检报告 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" placeholder="有或无，有则填入报告内容"></textarea>
+            </div>
+            
+            <div class="field">
+                <label>肺功能报告 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" placeholder="有或无，有则填入报告内容"></textarea>
+            </div>
+            
+            <h3 style="font-size:0.85rem;color:#6366f1;margin:1rem 0 0.5rem;">营养指标</h3>
+            
+            <div class="field-row">
+                <div class="field">
+                    <label>总蛋白(g/L) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" class="preview-input" step="0.1" placeholder="">
+                </div>
+                <div class="field">
+                    <label>白蛋白(g/L) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" class="preview-input" step="0.1" placeholder="">
+                </div>
+            </div>
+            
+            <div class="field-row">
+                <div class="field">
+                    <label>前白蛋白(mg/L) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" class="preview-input" step="0.1" placeholder="">
+                </div>
+                <div class="field">
+                    <label>红细胞计数(×10¹²/L) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" class="preview-input" step="0.01" placeholder="">
+                </div>
+            </div>
+            
+            <div class="field">
+                <label>血红蛋白(g/L) <span class="tag tag-blue">识别</span></label>
+                <input type="number" class="preview-input" step="0.1" placeholder="">
+            </div>
+            
+            <h3 style="font-size:0.85rem;color:#6366f1;margin:1rem 0 0.5rem;">血气分析指标</h3>
+            
+            <div class="field-row">
+                <div class="field">
+                    <label>氧分压PaO₂(mmHg) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" class="preview-input" step="0.1" placeholder="">
+                </div>
+                <div class="field">
+                    <label>二氧化碳分压PaCO₂(mmHg) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" class="preview-input" step="0.1" placeholder="">
+                </div>
+                <div class="field">
+                    <label>血氧饱和度SaO₂(%) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" class="preview-input" step="0.1" placeholder="">
+                </div>
+            </div>
+            
+            <h3 style="font-size:0.85rem;color:#6366f1;margin:1rem 0 0.5rem;">氧合评估</h3>
+            
+            <div class="field-row">
+                <div class="field">
+                    <label>氧流量(L/min) <span class="tag tag-orange">手动</span></label>
+                    <input type="number" class="preview-input" step="0.1" placeholder="如：3">
+                </div>
+                <div class="field">
+                    <label>吸氧浓度(%) <span class="tag tag-green">自动</span></label>
+                    <input type="text" class="preview-input" readonly placeholder="自动计算">
+                </div>
+            </div>
+            
+            <div class="field">
+                <label>氧合指数 <span class="tag tag-green">自动</span></label>
+                <input type="text" class="preview-input" readonly placeholder="PaO₂/FiO₂">
+            </div>
+            
+            <h3 style="font-size:0.85rem;color:#6366f1;margin:1rem 0 0.5rem;">营养指标</h3>
+            
+            <div class="field-row">
+                <div class="field">
+                    <label>总蛋白(g/L) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" class="preview-input" step="0.1" placeholder="">
+                </div>
+                <div class="field">
+                    <label>白蛋白(g/L) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" class="preview-input" step="0.1" placeholder="">
+                </div>
+            </div>
+            
+            <div class="field-row">
+                <div class="field">
+                    <label>前白蛋白(mg/L) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" class="preview-input" step="0.1" placeholder="">
+                </div>
+                <div class="field">
+                    <label>红细胞计数(×10¹²/L) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" class="preview-input" step="0.01" placeholder="">
+                </div>
+            </div>
+            
+            <div class="field">
+                <label>血红蛋白(g/L) <span class="tag tag-blue">识别</span></label>
+                <input type="number" class="preview-input" step="0.1" placeholder="">
+            </div>
+            
+            <h3 style="font-size:0.85rem;color:#6366f1;margin:1rem 0 0.5rem;">血气分析指标</h3>
+            
+            <div class="field">
+                <label>血气分析 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" placeholder="有或无，有则填入氧分压、二氧化碳分压、血氧饱和度"></textarea>
+            </div>
+            
+            <h3 style="font-size:0.85rem;color:#6366f1;margin:1rem 0 0.5rem;">氧合评估</h3>
+            
+            <div class="field-row">
+                <div class="field">
+                    <label>氧流量(L/min) <span class="tag tag-orange">手动</span></label>
+                    <input type="number" class="preview-input" step="0.1" placeholder="如：3">
+                </div>
+                <div class="field">
+                    <label>吸氧浓度(%) <span class="tag tag-green">自动</span></label>
+                    <input type="text" class="preview-input" readonly placeholder="自动计算">
+                </div>
+            </div>
+            
+            <div class="field-row">
+                <div class="field">
+                    <label>氧分压PaO₂(mmHg) <span class="tag tag-blue">识别</span></label>
+                    <input type="number" class="preview-input" step="0.1" placeholder="">
+                </div>
+                <div class="field">
+                    <label>氧合指数 <span class="tag tag-green">自动</span></label>
+                    <input type="text" class="preview-input" readonly placeholder="PaO₂/FiO₂">
+                </div>
+            </div>
+            
+            <div class="field">
+                <label>呼吸道病原体检测 <span class="tag tag-orange">手动多选</span></label>
+                <div style="display:flex;flex-wrap:wrap;gap:0.75rem;padding:0.5rem 0;">
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="pathogen" value="病毒"> 病毒</label>
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="pathogen" value="革兰阳性菌"> 革兰阳性菌</label>
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="pathogen" value="革兰阴性菌"> 革兰阴性菌</label>
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="pathogen" value="混合"> 混合</label>
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="pathogen" value="特殊细菌"> 特殊细菌</label>
+                    <label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;"><input type="checkbox" name="pathogen" value="无"> 无</label>
+                </div>
+            </div>
+            
+            <div class="field">
+                <label>体格检查异常结果 <span class="tag tag-blue">识别</span></label>
+                <textarea class="preview-textarea" rows="3" placeholder="请输入异常结果，包括：①一般情况 ②皮肤及浅表淋巴结 ③头颈部 ④胸部 ⑤腹部 ⑥神经系统 ⑦泌尿生殖系统 ⑧脊柱四肢 ⑨其他"></textarea>
+            </div>
+        </div>
+
+        <!-- 第五部分：中医问诊 -->
+        <div class="section">
+            <h2 class="section-title">第五部分：中医问诊评分（约150字段）</h2>
+            <p class="hint" style="margin-bottom:1rem;">每项0（无）/1（轻度）/2（中度）/3（重度）</p>
+            
+            <div class="tcm-section">
+                <details class="tcm-category">
+                    <summary>一、寒热（12项）<span class="tcm-score-row">点击展开</span></summary>
+                    <div class="tcm-items">
+                        <div class="tcm-item"><label>喜凉恶热</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>喜温恶凉</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>经常畏冷</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>容易感冒</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>经常恶风</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>脘腹腰背冷</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>四肢凉</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>下肢冷甚</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>关节冷</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>潮热</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>手足心烧</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>发热</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                    </div>
+                </details>
+                
+                <details class="tcm-category">
+                    <summary>二、汗出（5项）<span class="tcm-score-row">点击展开</span></summary>
+                    <div class="tcm-items">
+                        <div class="tcm-item"><label>自汗</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>盗汗</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>出虚汗或易出汗</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>局部汗多</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>但头汗出</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                    </div>
+                </details>
+                
+                <details class="tcm-category">
+                    <summary>三、疼痛部位（10项）<span class="tcm-score-row">点击展开</span></summary>
+                    <div class="tcm-items">
+                        <div class="tcm-item"><label>头痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>咽喉痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>胸痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>胁痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>脘腹痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>腹痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>关节痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>肌肉痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>腰痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>背痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                    </div>
+                </details>
+                
+                <details class="tcm-category">
+                    <summary>四、疼痛性质（15项）<span class="tcm-score-row">点击展开</span></summary>
+                    <div class="tcm-items">
+                        <div class="tcm-item"><label>胀痛或窜痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>绞痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>刺痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>固定痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>游走痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>灼痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>冷痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>隐痛</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>痛喜按</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>痛拒按</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>夜间痛甚</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>得食痛缓</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>进食痛甚</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>阴雨天加重</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>气行觉舒</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                    </div>
+                </details>
+                
+                <details class="tcm-category">
+                    <summary>五、头身不适（20项）<span class="tcm-score-row">点击展开 ▼</span></summary>
+                    <div class="tcm-items">
+                        <div class="tcm-item"><label>头晕</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>眼花</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>耳久鸣</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>喷嚏</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>鼻塞流清涕</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>流浊涕</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>喉痒</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>咽部异物感</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>鼻痒</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>心悸</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>胸闷</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>胁胀</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>脘痞胀</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>胃脘嘈杂</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>腹胀</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>头重脚轻感</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>倦怠乏力</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>身体酸（困）重</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>腰膝酸软</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                        <div class="tcm-item"><label>皮肤瘙痒</label><select><option>0分 - 无</option><option>1分 - 轻度</option><option>2分 - 中度</option><option>3分 - 重度</option></select></div>
+                    </div>
+                </details>
+                
+                <details class="tcm-category">
+                    <summary>六、睡眠 - 十六、脉象（共约100项）<span class="tcm-score-row">点击展开 ▼</span></summary>
+                    <div class="tcm-items" style="grid-template-columns: 1fr;">
+                        <div class="tcm-item" style="padding: 1rem; text-align: center; color: #6b7280;">
+                            <p>六、睡眠（4项）：失眠、多梦、睡眠不实易醒、嗜睡</p>
+                            <p style="margin-top:0.5rem;">七、情志（5项）：善悲易哭、心烦、胆怯易惊、情志抑郁、情绪易激动</p>
+                            <p style="margin-top:0.5rem;">八、声音（4项）：懒言、声低、声音洪亮、声音重浊</p>
+                            <p style="margin-top:0.5rem;">九、咳痰喘（17项）：咳嗽、干咳、吐痰、各种痰液、气喘、气短等</p>
+                            <p style="margin-top:0.5rem;">十、饮食口味（17项）：口不渴、口渴、纳呆、口苦、口臭、恶心、呕吐、嗳气等</p>
+                            <p style="margin-top:0.5rem;">十一、大便（15项）：腹泻、便秘、干结、便溏、排便无力等</p>
+                            <p style="margin-top:0.5rem;">十二、小便（10项）：尿频、夜尿多、尿短黄、尿清长等</p>
+                            <p style="margin-top:0.5rem;">十三、颈胸腹部体征（5项）：气息微弱、三凹征、啰音、桶状胸</p>
+                            <p style="margin-top:0.5rem;">十四、形体肌肤（5项）：身体素弱、形体消瘦、肥胖、水肿、肌肤甲错</p>
+                            <p style="margin-top:0.5rem;">十五、舌象（25项）：舌质、舌苔各类特征</p>
+                            <p style="margin-top:0.5rem;">十六、脉象（10项）：脉浮、沉、数、弦、滑等</p>
+                        </div>
+                    </div>
+                </details>
+            </div>
+            
+            <div class="score-box" style="margin-top:1rem;">
+                <label>中医问诊总分 <span class="tag" style="background:white;color:#059669;">自动计算</span></label>
+                <input type="text" readonly value="0" placeholder="0">
+            </div>
+        </div>
+
+        <button class="btn-save">保存（预览模式下不可用）</button>
+    </div>
+    
+    <!-- 底部统计栏 -->
+    <div class="total-bar">
+        <div class="total-item">
+            <div class="total-num">197+</div>
+            <div class="total-label">总字段数</div>
+        </div>
+        <div class="total-item">
+            <div class="total-num">5</div>
+            <div class="total-label">部分</div>
+        </div>
+        <div class="total-item">
+            <div class="total-num">5</div>
+            <div class="total-label">自动计算</div>
+        </div>
+    </div>
+        <div class="total-item">
+            <div class="total-num">5</div>
+            <div class="total-label">部分</div>
+        </div>
+        <div class="total-item">
+            <div class="total-num">7</div>
+            <div class="total-label">自动计算</div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,7 +1,7 @@
 import { serve } from 'bun';
 
 const server = serve({
-    port: 3000,
+    port: 3030,
     fetch(req) {
         const url = new URL(req.url);
         let filePath = url.pathname;
@@ -44,4 +44,4 @@ const server = serve({
     },
 });
 
-console.log('🚀 Server running at http://localhost:3000');
+console.log('🚀 Server running at http://localhost:3030');
