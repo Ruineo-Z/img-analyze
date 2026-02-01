@@ -7,6 +7,9 @@ import XLSX from 'xlsx';
 const DATA_DIR = join(process.cwd(), 'data');
 const RECORDS_FILE = join(DATA_DIR, 'records.json');
 
+// 保存队列，防止并发写入
+const saveQueue = [];
+
 // 确保数据目录存在
 if (!existsSync(DATA_DIR)) {
     mkdirSync(DATA_DIR, { recursive: true });
@@ -24,9 +27,39 @@ function getAllRecords() {
     }
 }
 
-// 保存所有记录
-function saveAllRecords(records) {
-    writeFileSync(RECORDS_FILE, JSON.stringify(records, null, 2));
+// 保存所有记录（使用队列机制防止并发写入）
+const saveQueue = [];
+
+async function saveAllRecords(records) {
+    // 将保存操作加入队列
+    return new Promise((resolve) => {
+        saveQueue.push({ records, resolve });
+        
+        // 如果队列中只有当前这一个任务，立即执行
+        if (saveQueue.length === 1) {
+            processQueue();
+        }
+    });
+}
+
+async function processQueue() {
+    if (saveQueue.length === 0) return;
+    
+    const { records, resolve } = saveQueue[0];
+    
+    try {
+        writeFileSync(RECORDS_FILE, JSON.stringify(records, null, 2));
+        resolve({ success: true });
+    } catch (e) {
+        console.error('保存失败:', e);
+        resolve({ success: false, error: e.message });
+    }
+    
+    // 移出队列，处理下一个
+    saveQueue.shift();
+    if (saveQueue.length > 0) {
+        processQueue();
+    }
 }
 
 // 获取日期（YYYY-MM-DD）
@@ -98,7 +131,7 @@ const server = serve({
                     });
                 }
                 
-                saveAllRecords(records);
+                await saveAllRecords(records);
                 return new Response(JSON.stringify({ success: true, message: '保存成功' }), {
                     headers: { 'Content-Type': 'application/json' }
                 });
