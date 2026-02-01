@@ -28,8 +28,6 @@ function getAllRecords() {
 }
 
 // 保存所有记录（使用队列机制防止并发写入）
-const saveQueue = [];
-
 async function saveAllRecords(records) {
     // 将保存操作加入队列
     return new Promise((resolve) => {
