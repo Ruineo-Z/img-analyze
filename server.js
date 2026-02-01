@@ -155,6 +155,7 @@ const server = serve({
                     '分组': r.group || '',
                     'ID号': r.id || '',
                     '姓名': r.name || '',
+                    '年龄': r.age || '',
                     '性别': r.gender || '',
                     '民族': r.ethnicity || '',
                     '身高(M)': r.height || '',

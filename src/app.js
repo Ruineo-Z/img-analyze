@@ -197,6 +197,7 @@ class ImageAnalyzerApp {
         this.fieldGroup = document.getElementById('field_group');
         this.fieldId = document.getElementById('field_id');
         this.fieldName = document.getElementById('field_name');
+        this.fieldAge = document.getElementById('field_age');
         this.fieldGender = document.getElementById('field_gender');
         this.fieldEthnicity = document.getElementById('field_ethnicity');
         this.fieldHeight = document.getElementById('field_height');
@@ -597,6 +598,7 @@ class ImageAnalyzerApp {
         this.fieldGroup.value = '';
         this.fieldId.value = '';
         this.fieldName.value = '';
+        this.fieldAge.value = '';
         this.fieldGender.value = '';
         this.fieldEthnicity.value = '';
         this.fieldHeight.value = '';
@@ -700,6 +702,7 @@ class ImageAnalyzerApp {
             group: this.fieldGroup.value,
             id: this.fieldId.value.trim(),
             name: this.fieldName.value.trim(),
+            age: this.fieldAge.value.trim(),
             gender: this.fieldGender.value,
             ethnicity: this.fieldEthnicity.value.trim(),
             height: this.fieldHeight.value.trim(),
@@ -730,8 +733,8 @@ class ImageAnalyzerApp {
                 const gerdqData = {};
                 const dayRanges = ['0天', '1天', '2-3天', '4-7天'];
                 const gerdqQuestions = [
-                    '醒来时烧心', '睡眠中醒来', '醒来时反流', '进食后烧心',
-                    '进食后反流', '上腹痛'
+                    '胸骨后灼烧感', '胃内容物上返', '上腹部中央疼痛',
+                    '感到恶心', '夜间睡眠困难', '额外服药'
                 ];
                 for (let q = 1; q <= 6; q++) {
                     for (let d = 0; d <= 3; d++) {
@@ -972,6 +975,7 @@ class ImageAnalyzerApp {
 - 请注意区分，不要混淆
 
 【字段提取规则】
+- age: 年龄，只填数字，如 "45"
 - ct_report: CT报告的完整描述
 - gastroscopy: 胃镜报告的完整描述
 - biopsy: 活检报告的完整描述
@@ -986,7 +990,7 @@ class ImageAnalyzerApp {
 - hemoglobin: 血红蛋白数值，只填数字
 
 【输出格式】只输出JSON，不要有任何其他内容：
-{"id": "", "name": "", "gender": "", "ethnicity": "", "occupation": "", "marriage": "", "diagnosis_wm": "", "diagnosis_tcm": "", "medical_history": "", "smoking_drinking": "", "allergy": "", "surgery": "", "medications": "", "ct_report": "", "fibrosis_location": "", "gastroscopy": "", "biopsy": "", "lung_function": "", "total_protein": "", "albumin": "", "prealbumin": "", "rbc": "", "hemoglobin": "", "pao2": "", "paco2": "", "sao2": "", "physical_exam": ""}
+{"id": "", "name": "", "age": "", "gender": "", "ethnicity": "", "occupation": "", "marriage": "", "diagnosis_wm": "", "diagnosis_tcm": "", "medical_history": "", "smoking_drinking": "", "allergy": "", "surgery": "", "medications": "", "ct_report": "", "fibrosis_location": "", "gastroscopy": "", "biopsy": "", "lung_function": "", "total_protein": "", "albumin": "", "prealbumin": "", "rbc": "", "hemoglobin": "", "pao2": "", "paco2": "", "sao2": "", "physical_exam": ""}
 
 请仔细识别所有图片，确保完整准确。`
                         }
@@ -1110,7 +1114,7 @@ class ImageAnalyzerApp {
         // 终极方案：逐字段正则提取
         const result = {};
         const fields = [
-            'id', 'name', 'gender', 'ethnicity', 'occupation', 'marriage',
+            'id', 'name', 'age', 'gender', 'ethnicity', 'occupation', 'marriage',
             'diagnosis_wm', 'diagnosis_tcm', 'medical_history', 'smoking_drinking',
             'allergy', 'surgery', 'medications', 'ct_report', 'fibrosis_location',
             'gastroscopy', 'biopsy', 'lung_function', 'total_protein', 'albumin',
@@ -1146,6 +1150,7 @@ class ImageAnalyzerApp {
     fillForm(data) {
         this.fieldId.value = data.id || '';
         this.fieldName.value = data.name || '';
+        this.fieldAge.value = data.age || '';
         
         if (data.gender) {
             const genderLower = data.gender.toLowerCase();
