@@ -218,6 +218,8 @@ class ImageAnalyzerApp {
         // 幽门螺旋杆菌
         this.fieldHp = document.getElementById('field_hp');
         this.fieldDuration = document.getElementById('field_duration');
+        this.fieldHospitalDays = document.getElementById('field_hospital_days');
+        this.fieldExacerbationTimes = document.getElementById('field_exacerbation_times');
         this.fieldMedications = document.getElementById('field_medications');
         
         // 第二部分：GERDQ评分字段（6问题 × 4天数区间 = 24字段） - 现在使用复选框
@@ -623,6 +625,8 @@ class ImageAnalyzerApp {
         // 幽门螺旋杆菌
         this.fieldHp.value = '';
         this.fieldDuration.value = '';
+        this.fieldHospitalDays.value = '';
+        this.fieldExacerbationTimes.value = '';
         this.fieldMedications.value = '';
         
         // GERDQ fields (6 questions × 4 day ranges = 24 fields) - 复选框模式
@@ -726,6 +730,8 @@ class ImageAnalyzerApp {
                 .join(';'),
             hp: this.fieldHp.value,
             duration: this.fieldDuration.value.trim(),
+            hospital_days: this.fieldHospitalDays.value.trim(),
+            exacerbation_times: this.fieldExacerbationTimes.value.trim(),
             medications: this.fieldMedications.value.trim(),
             
             // GERDQ评分 (6 questions × 4 day ranges = 24 fields) - 复选框模式

@@ -204,6 +204,8 @@ const server = serve({
                     '饮食习惯': r.diet || '',
                     '幽门螺旋杆菌': r.hp || '',
                     '病程(年)': r.duration || '',
+                    '本次住院天数': r.hospital_days || '',
+                    '近1年加重次数': r.exacerbation_times || '',
                     '当前用药': r.medications || '',
                     'GERDQ评分': r.gerdq_total || '',
                     'mMRC分级': r.mmrc || '',
