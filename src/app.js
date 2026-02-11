@@ -8,6 +8,13 @@ class ImageAnalyzerApp {
         this.currentImageBase64 = '';
         this.uploadedImages = [];  // 存储所有已上传图片的base64数据
         this.MAX_IMAGES = 10;  // 最大支持10张图片
+        // GLM-4.6v上下文窗口为128K，这里保留一定输出空间用于安全校验
+        this.MODEL_CONTEXT_TOKENS = 128000;
+        this.MAX_REQUEST_INPUT_TOKENS = Math.floor(this.MODEL_CONTEXT_TOKENS * 0.86);
+        this.ESTIMATED_TEXT_TOKENS_PER_CHAR = 1.1;
+        this.ESTIMATED_IMAGE_TOKENS_PER_MB = 3000;
+        this.REQUEST_OVERHEAD_TOKENS = 800;
+        this.GLM_API_TIMEOUT_MS = 3 * 60 * 1000;
         
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.init());
@@ -542,7 +549,11 @@ class ImageAnalyzerApp {
         const readers = files.map(file => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = (e) => resolve({ name: file.name, base64: e.target.result });
+                reader.onload = (e) => resolve({
+                    name: file.name,
+                    size: file.size || 0,
+                    base64: e.target.result
+                });
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
@@ -941,37 +952,9 @@ class ImageAnalyzerApp {
     async analyzeImage() {
         await this.analyzeImages();
     }
-    
-    async callGLMAPI() {
-        if (!this.apiKey) {
-            this.showSettings();
-            throw new Error('请先配置 API Key');
-        }
-        
-        if (this.uploadedImages.length === 0) {
-            throw new Error('请先上传图片');
-        }
-        
-        const imageContents = this.uploadedImages.map(img => ({
-            type: 'image_url',
-            image_url: { url: img.base64.split(',')[1] }
-        }));
-        
-        const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'glm-4.6v',
-                messages: [{
-                    role: 'user',
-                    content: [
-                        ...imageContents,
-                        {
-                            type: 'text',
-                            text: `请从以上${this.uploadedImages.length}张医疗图片中提取患者信息，按以下JSON格式输出。务必确保输出的是有效的JSON格式。
+
+    buildExtractionPrompt(imageCount) {
+        return `请从以上${imageCount}张医疗图片中提取患者信息，按以下JSON格式输出。务必确保输出的是有效的JSON格式。
 
 【重要规则】
 1. 务必提取完整信息，不要遗漏细节
@@ -1005,21 +988,114 @@ class ImageAnalyzerApp {
 【输出格式】只输出JSON，不要有任何其他内容：
 {"id": "", "name": "", "age": "", "gender": "", "ethnicity": "", "occupation": "", "marriage": "", "diagnosis_wm": "", "diagnosis_tcm": "", "medical_history": "", "smoking_drinking": "", "allergy": "", "surgery": "", "medications": "", "ct_report": "", "fibrosis_location": "", "gastroscopy": "", "biopsy": "", "lung_function": "", "total_protein": "", "albumin": "", "prealbumin": "", "rbc": "", "hemoglobin": "", "pao2": "", "paco2": "", "sao2": "", "physical_exam": ""}
 
-请仔细识别所有图片，确保完整准确。`
-                        }
-                    ]
-                }],
-                temperature: 0.1
-            })
+请仔细识别所有图片，确保完整准确。`;
+    }
+
+    getImageByteSize(image) {
+        if (typeof image.size === 'number' && image.size > 0) {
+            return image.size;
+        }
+
+        const base64Body = (image.base64 || '').split(',')[1] || '';
+        return Math.floor((base64Body.length * 3) / 4);
+    }
+
+    estimateInputTokens(promptText) {
+        const textTokens = Math.ceil(promptText.length * this.ESTIMATED_TEXT_TOKENS_PER_CHAR);
+        const totalImageBytes = this.uploadedImages.reduce((sum, img) => sum + this.getImageByteSize(img), 0);
+        const totalImageMB = totalImageBytes / (1024 * 1024);
+        const imageTokens = Math.ceil(totalImageMB * this.ESTIMATED_IMAGE_TOKENS_PER_MB);
+        const totalTokens = textTokens + imageTokens + this.REQUEST_OVERHEAD_TOKENS;
+
+        return {
+            totalTokens,
+            textTokens,
+            imageTokens,
+            totalImageMB
+        };
+    }
+
+    precheckTokenBudget(promptText) {
+        const estimate = this.estimateInputTokens(promptText);
+        console.log('Token预估:', {
+            total: estimate.totalTokens,
+            text: estimate.textTokens,
+            image: estimate.imageTokens,
+            imageMB: estimate.totalImageMB.toFixed(2),
+            limit: this.MAX_REQUEST_INPUT_TOKENS
         });
-        
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.error?.message || 'API 调用失败');
+
+        if (estimate.totalTokens > this.MAX_REQUEST_INPUT_TOKENS) {
+            throw new Error(
+                `预计输入约${estimate.totalTokens} tokens（图片约${estimate.imageTokens}，文本约${estimate.textTokens}），超出安全阈值${this.MAX_REQUEST_INPUT_TOKENS}。请减少图片数量或压缩图片后重试。`
+            );
+        }
+
+        if (estimate.totalTokens > Math.floor(this.MAX_REQUEST_INPUT_TOKENS * 0.85)) {
+            this.showToast(`预计输入约${estimate.totalTokens} tokens，接近上限`, '');
+        }
+    }
+    
+    async callGLMAPI() {
+        if (!this.apiKey) {
+            this.showSettings();
+            throw new Error('请先配置 API Key');
         }
         
-        const data = await response.json();
-        return this.parseResponse(data.choices[0].message.content);
+        if (this.uploadedImages.length === 0) {
+            throw new Error('请先上传图片');
+        }
+        
+        const imageContents = this.uploadedImages.map(img => ({
+            type: 'image_url',
+            image_url: { url: img.base64.split(',')[1] }
+        }));
+
+        const promptText = this.buildExtractionPrompt(this.uploadedImages.length);
+        this.precheckTokenBudget(promptText);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.GLM_API_TIMEOUT_MS);
+
+        try {
+            const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.apiKey}`
+                },
+                signal: controller.signal,
+                body: JSON.stringify({
+                    model: 'glm-4.6v',
+                    messages: [{
+                        role: 'user',
+                        content: [
+                            ...imageContents,
+                            {
+                                type: 'text',
+                                text: promptText
+                            }
+                        ]
+                    }],
+                    temperature: 0.1
+                })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.error?.message || 'API 调用失败');
+            }
+            
+            const data = await response.json();
+            return this.parseResponse(data.choices[0].message.content);
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error(`接口请求超时（3分钟），请减少图片数量或压缩后重试`);
+            }
+            throw error;
+        } finally {
+            clearTimeout(timeoutId);
+        }
     }
     
     async analyzeImages() {
