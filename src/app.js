@@ -165,7 +165,10 @@ class ImageAnalyzerApp {
         console.log('formSection exists:', !!document.getElementById('formSection'));
         this.uploadSection = document.getElementById('uploadSection');
         this.uploadArea = document.getElementById('uploadArea');
-        this.fileInput = document.getElementById('fileInput');
+        this.cameraBtn = document.getElementById('cameraBtn');
+        this.galleryBtn = document.getElementById('galleryBtn');
+        this.cameraInput = document.getElementById('cameraInput');
+        this.galleryInput = document.getElementById('galleryInput');
         this.previewSection = document.getElementById('previewSection');
         this.previewGrid = document.getElementById('previewGrid');
         this.imageCount = document.getElementById('imageCount');
@@ -264,15 +267,24 @@ class ImageAnalyzerApp {
     }
 
     bindEvents() {
-        this.uploadArea.addEventListener('click', () => this.fileInput.click());
-        this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        this.cameraBtn.addEventListener('click', () => {
+            this.cameraInput.value = '';
+            this.cameraInput.click();
+        });
+        this.galleryBtn.addEventListener('click', () => {
+            this.galleryInput.value = '';
+            this.galleryInput.click();
+        });
+        this.cameraInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        this.galleryInput.addEventListener('change', (e) => this.handleFileSelect(e));
         this.clearAllImagesBtn.addEventListener('click', (e) => {
             e.preventDefault();
             this.clearAllImages();
         });
         this.addMoreImagesBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            this.fileInput.click();
+            this.galleryInput.value = '';
+            this.galleryInput.click();
         });
         this.analyzeImagesBtn.addEventListener('click', () => this.analyzeImages());
         this.submitBtn.addEventListener('click', () => this.saveRecord());
@@ -588,7 +600,8 @@ class ImageAnalyzerApp {
         this.loadingSection.hidden = true;
         this.formSection.hidden = true;
         this.successSection.hidden = true;
-        this.fileInput.value = '';
+        this.cameraInput.value = '';
+        this.galleryInput.value = '';
         this.uploadedImages = [];
         this.clearForm();
     }
