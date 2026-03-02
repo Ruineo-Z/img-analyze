@@ -36,13 +36,22 @@
             </div>
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📸</div>
-                <p class="upload-text">点击拍照或选择图片</p>
-                <p class="upload-hint">支持 JPG、PNG 格式</p>
+                <p class="upload-text">选择图片来源</p>
+                <p class="upload-hint">不同手机浏览器兼容性不同，建议按需选择</p>
+                <div class="upload-actions">
+                    <button type="button" class="btn btn-primary" id="cameraBtn">拍照</button>
+                    <button type="button" class="btn btn-outline" id="galleryBtn">上传图片</button>
+                </div>
             </div>
             <input type="file" 
-                   id="fileInput" 
+                   id="cameraInput" 
                    accept="image/*" 
                    capture="environment"
+                   multiple
+                   hidden>
+            <input type="file"
+                   id="galleryInput"
+                   accept="image/*"
                    multiple
                    hidden>
         </section>

@@ -151,17 +151,12 @@ section {
     border-radius: var(--radius);
     padding: 3rem 2rem;
     text-align: center;
-    cursor: pointer;
     transition: var(--transition);
 }
 
 .upload-area:hover {
     border-color: var(--primary);
     background: var(--gray-50);
-}
-
-.upload-area:active {
-    transform: scale(0.98);
 }
 
 .upload-icon {
@@ -180,6 +175,16 @@ section {
 .upload-hint {
     font-size: 0.75rem;
     color: var(--gray-400);
+    margin-bottom: 1rem;
+}
+
+.upload-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.upload-actions .btn {
+    flex: 1;
 }
 
 /* Preview */
@@ -875,6 +880,10 @@ section {
 
     .upload-icon {
         font-size: 2.5rem;
+    }
+
+    .upload-actions {
+        flex-direction: column;
     }
 
     /* 移动端表单优化 */
