@@ -102,7 +102,12 @@ function getTCMExcelColumns(record) {
 const server = serve({
     port: process.env.PORT || 3030,
     fetch: async (req) => {
-        const url = new URL(req.url);
+        let url;
+        try {
+            url = new URL(req.url);
+        } catch (e) {
+            return new Response('Bad Request', { status: 400 });
+        }
         const path = url.pathname;
 
         // 忽略 .well-known 路径

@@ -135,6 +135,16 @@ section {
     margin-bottom: 1.5rem;
 }
 
+.upload-actions {
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.upload-actions .btn-large {
+    max-width: 300px;
+    margin: 0 auto;
+}
+
 .upload-area {
     background: var(--white);
     border: 2px dashed var(--gray-300);
@@ -613,6 +623,11 @@ section {
 
 .btn-outline:active {
     background: var(--gray-50);
+}
+
+.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
 }
 
 /* Success */

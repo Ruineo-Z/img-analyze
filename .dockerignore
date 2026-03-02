@@ -1,0 +1,14 @@
+.git
+.github
+node_modules
+data
+.DS_Store
+*.md
+.env*
+Dockerfile
+*.tar*
+test_*
+fields-list.html
+fields-list.md
+preview.html
+favicon.ico

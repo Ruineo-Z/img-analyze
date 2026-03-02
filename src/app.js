@@ -192,6 +192,7 @@ class ImageAnalyzerApp {
         this.dateSelect = document.getElementById('dateSelect');
         this.confirmExport = document.getElementById('confirmExport');
         this.toast = document.getElementById('toast');
+        this.manualFillBtn = document.getElementById('manualFillBtn');
         
         // 第一部分字段
         this.fieldGroup = document.getElementById('field_group');
@@ -283,6 +284,7 @@ class ImageAnalyzerApp {
         this.closeSettings.addEventListener('click', () => this.hideSettings());
         this.saveApiKeyBtn.addEventListener('click', () => this.saveApiKey());
         this.downloadBtn.addEventListener('click', () => this.showDateSelectModal());
+        this.manualFillBtn.addEventListener('click', () => this.showFormDirectly());
         
         this.fieldHeight.addEventListener('input', () => this.calculateBMI());
         this.fieldWeight.addEventListener('input', () => this.calculateBMI());
@@ -593,6 +595,16 @@ class ImageAnalyzerApp {
         this.fileInput.value = '';
         this.uploadedImages = [];
         this.clearForm();
+    }
+    
+    showFormDirectly() {
+        this.uploadSection.hidden = true;
+        this.previewSection.hidden = true;
+        this.loadingSection.hidden = true;
+        this.formSection.hidden = false;
+        this.successSection.hidden = true;
+        this.clearForm();
+        window.scrollTo(0, 0);
     }
     
     clearForm() {
